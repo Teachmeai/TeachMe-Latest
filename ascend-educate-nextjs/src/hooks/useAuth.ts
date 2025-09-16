@@ -49,6 +49,7 @@ export function useAuth() {
           console.log('User signed in or token refreshed, updating state')
           setUser(session.user)
           if (event === 'SIGNED_IN') {
+            setLoading(true)
             await fetchUserSession()
           } else {
             console.log('Token refreshed, keeping existing session')
@@ -107,7 +108,13 @@ export function useAuth() {
     }
 
     try {
+      setLoading(true)
       console.log('Fetching user session...')
+      // Ensure JWT is available; if not, wait briefly and retry once
+      const current = (await supabase.auth.getSession()).data.session
+      if (!current?.access_token) {
+        await new Promise(res => setTimeout(res, 200))
+      }
       const response = await backend.getMe(deviceId)
       if (response.ok && response.data) {
         const sessionData = response.data
