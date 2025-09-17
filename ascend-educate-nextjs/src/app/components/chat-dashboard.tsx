@@ -4,7 +4,6 @@ import * as React from "react"
 import { 
   MessageSquare, 
   Plus, 
-  Settings, 
   LogOut, 
   User,
   Edit,
@@ -44,7 +43,7 @@ import {
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
-import { RoleSwitcher } from "../../components/role-switcher"
+// removed quick role switcher; role management happens inside Profile
 import { useAuth } from "../../hooks/useAuth"
 
 interface UserProfile {
@@ -87,7 +86,7 @@ export function ChatDashboard({ user, onLogout, onSendMessage, onProfileUpdate }
   const [searchQuery, setSearchQuery] = React.useState("")
   const [userProfile, setUserProfile] = React.useState<UserProfile>(user)
   const [profileDialogOpen, setProfileDialogOpen] = React.useState(false)
-  const [settingsDialogOpen, setSettingsDialogOpen] = React.useState(false)
+  
   const [showProfileManagement, setShowProfileManagement] = React.useState(false)
   const fileInputRef = React.useRef<HTMLInputElement>(null)
   
@@ -355,35 +354,14 @@ export function ChatDashboard({ user, onLogout, onSendMessage, onProfileUpdate }
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     
-                    {/* Role Switcher */}
-                    {session && session.roles.length > 1 && (
-                      <>
-                        <div className="px-2 py-1.5">
-                          <p className="text-xs font-medium text-muted-foreground mb-2">Switch Role</p>
-                          <RoleSwitcher
-                            roles={session.roles}
-                            activeRole={userProfile.role}
-                            onRoleSwitch={handleRoleSwitch}
-                            className="w-full"
-                          />
-                        </div>
-                        <DropdownMenuSeparator />
-                      </>
-                    )}
+                    
                     
                     <DropdownMenuItem 
                       className="cursor-pointer"
                       onClick={() => setShowProfileManagement(true)}
                     >
                       <User className="mr-2 h-4 w-4" />
-                      <span>Profile Management</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem 
-                      className="cursor-pointer"
-                      onClick={() => setSettingsDialogOpen(true)}
-                    >
-                      <Settings className="mr-2 h-4 w-4" />
-                      <span>Settings</span>
+                      <span>Profile</span>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
@@ -461,6 +439,10 @@ export function ChatDashboard({ user, onLogout, onSendMessage, onProfileUpdate }
             {showProfileManagement ? (
               <ProfileManagement
                 user={userProfile}
+                roles={session?.roles || []}
+                activeRole={userProfile.role}
+                activeOrgId={session?.active_org_id}
+                onSwitchRole={handleRoleSwitch}
                 onProfileUpdate={handleProfileUpdate}
                 onClose={() => setShowProfileManagement(false)}
               />
@@ -590,35 +572,7 @@ export function ChatDashboard({ user, onLogout, onSendMessage, onProfileUpdate }
         </DialogContent>
       </Dialog>
 
-      {/* Settings Dialog */}
-      <Dialog open={settingsDialogOpen} onOpenChange={setSettingsDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Settings</DialogTitle>
-            <DialogDescription>
-              Manage your application preferences.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="theme-toggle">Theme</Label>
-              <ThemeToggle />
-            </div>
-            <div className="flex items-center justify-between">
-              <Label>Notifications</Label>
-              <Button variant="outline" size="sm">Configure</Button>
-            </div>
-            <div className="flex items-center justify-between">
-              <Label>Language</Label>
-              <Button variant="outline" size="sm">English</Button>
-            </div>
-            <div className="flex items-center justify-between">
-              <Label>Data Export</Label>
-              <Button variant="outline" size="sm">Download</Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+      
     </div>
   )
 }

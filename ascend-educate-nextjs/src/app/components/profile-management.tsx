@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { GlassCard } from "@/components/ui/glass-card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { ProfileManagementProps } from "../../types"
+// lightweight props; avoid external type deps
 import { useProfileForm } from "../../hooks/useProfileForm"
 import { BasicInfoForm } from "../../components/forms/BasicInfoForm"
 import { RoleManagementForm } from "../../components/forms/RoleManagementForm"
@@ -14,8 +14,27 @@ import { FormActions } from "../../components/forms/FormActions"
 import { ProfileCompletion } from "../../components/profile/ProfileCompletion"
 import { getRoleById } from "../../config/roles"
 import { cn } from "@/lib/utils"
+import { RoleSwitcher } from "../../components/role-switcher"
 
-export function ProfileManagement({ user, onProfileUpdate, onClose, className }: ProfileManagementProps) {
+export function ProfileManagement({ 
+  user, 
+  onProfileUpdate, 
+  onClose, 
+  className,
+  roles,
+  activeRole,
+  activeOrgId,
+  onSwitchRole
+}: {
+  user: any
+  onProfileUpdate?: (u: any) => void
+  onClose?: () => void
+  className?: string
+  roles?: Array<{ scope: 'global' | 'org'; role: string; org_id?: string; org_name?: string }>
+  activeRole?: string
+  activeOrgId?: string
+  onSwitchRole?: (role: string, orgId?: string) => Promise<boolean> | void
+}) {
   const {
     isEditing,
     formData,
@@ -165,6 +184,87 @@ export function ProfileManagement({ user, onProfileUpdate, onClose, className }:
               <p className="text-sm text-muted-foreground mt-1">{currentRole.description}</p>
             )}
           </div>
+
+          {/* Role-specific fields (display only) */}
+          {(() => {
+            const roleName = (activeRole || user.role || "").toLowerCase()
+            const data = user.roleData || {}
+
+            const asPairs = (pairs: Array<[string, any]>) => (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                {pairs.map(([label, value]) => (
+                  <div key={label}>
+                    <p className="text-sm font-medium text-muted-foreground">{label}</p>
+                    <p className="text-sm">{value ?? 'Not specified'}</p>
+                  </div>
+                ))}
+              </div>
+            )
+
+            if (roleName === 'teacher') {
+              return (
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">Teacher Details</p>
+                  {asPairs([
+                    ['Courses Taught', data.courses || data.coursesTaught],
+                    ['Subjects', data.subjects],
+                    ['Experience (years)', data.experience],
+                  ])}
+                </div>
+              )
+            }
+
+            if (roleName === 'student') {
+              return (
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">Student Details</p>
+                  {asPairs([
+                    ['Courses Enrolled', data.enrolled_courses || data.coursesEnrolled],
+                    ['Grade / Year', data.grade || data.year],
+                    ['Interests', data.interests],
+                  ])}
+                </div>
+              )
+            }
+
+            if (roleName === 'organization_admin') {
+              return (
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">Organization Admin Details</p>
+                  {asPairs([
+                    ['Organization', data.org_name],
+                    ['Departments', data.departments],
+                  ])}
+                </div>
+              )
+            }
+
+            if (roleName === 'super_admin') {
+              return (
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">Super Admin Details</p>
+                  {asPairs([
+                    ['Scope', 'Global'],
+                  ])}
+                </div>
+              )
+            }
+
+            return null
+          })()}
+
+          {/* Role switching inside Profile - preserve existing style but move control here */}
+          {roles && roles.length > 0 && (
+            <div>
+              <p className="text-sm font-medium text-muted-foreground mb-2">Switch Role</p>
+              <RoleSwitcher
+                roles={roles}
+                activeRole={activeRole || user.role}
+                activeOrgId={activeOrgId}
+                onRoleSwitch={onSwitchRole}
+              />
+            </div>
+          )}
 
           {user.roleData && Object.keys(user.roleData).length > 0 && (
             <div>
