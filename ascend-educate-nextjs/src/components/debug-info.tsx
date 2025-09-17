@@ -2,11 +2,14 @@
 
 import { useEffect, useRef } from 'react'
 import { useAuth } from '../hooks/useAuth'
+import { useNotifications } from '../hooks/useNotifications'
+import { addTestNotification } from '../app/components/notification-bell'
 
 export function DebugInfo() {
   const renderCount = useRef(0)
   const apiCallCount = useRef(0)
   const { logout, user, session } = useAuth()
+  const { addNotification } = useNotifications()
 
   useEffect(() => {
     renderCount.current += 1
@@ -31,6 +34,11 @@ export function DebugInfo() {
     await logout()
   }
 
+  const testNotification = () => {
+    console.log('🔔 Adding test notification')
+    addTestNotification(addNotification)
+  }
+
   if (process.env.NODE_ENV !== 'development') {
     return null
   }
@@ -42,12 +50,20 @@ export function DebugInfo() {
       <div>User: {user ? 'Logged in' : 'Not logged in'}</div>
       <div>Session: {session ? 'Active' : 'None'}</div>
       {user && (
-        <button 
-          onClick={testLogout}
-          className="bg-red-600 hover:bg-red-700 px-2 py-1 rounded text-xs"
-        >
-          Test Logout
-        </button>
+        <div className="space-y-1">
+          <button 
+            onClick={testNotification}
+            className="bg-blue-600 hover:bg-blue-700 px-2 py-1 rounded text-xs block w-full"
+          >
+            Test Notification
+          </button>
+          <button 
+            onClick={testLogout}
+            className="bg-red-600 hover:bg-red-700 px-2 py-1 rounded text-xs block w-full"
+          >
+            Test Logout
+          </button>
+        </div>
       )}
     </div>
   )

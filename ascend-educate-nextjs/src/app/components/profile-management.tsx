@@ -11,7 +11,7 @@ import { useProfileForm } from "../../hooks/useProfileForm"
 import { BasicInfoForm } from "../../components/forms/BasicInfoForm"
 import { RoleManagementForm } from "../../components/forms/RoleManagementForm"
 import { FormActions } from "../../components/forms/FormActions"
-import { ProfileCompletion } from "../../components/profile/ProfileCompletion"
+// Removed ProfileCompletion import - progress bar functionality removed
 import { getRoleById } from "../../config/roles"
 import { cn } from "@/lib/utils"
 import { RoleSwitcher } from "../../components/role-switcher"
@@ -297,9 +297,6 @@ export function ProfileManagement({
         </div>
 
         <div className="flex-1 overflow-y-auto p-6 pb-8">
-          {/* Profile Completion Progress */}
-          <ProfileCompletion profile={user} className="mb-6" />
-
           <Tabs defaultValue="basic-info" className="w-full">
             <TabsList className="grid w-full grid-cols-2 mb-6">
               <TabsTrigger value="basic-info">Basic Info</TabsTrigger>
