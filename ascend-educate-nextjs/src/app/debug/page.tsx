@@ -4,9 +4,22 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
 import { backend } from '../../lib/backend'
 
+type AuthState = {
+  hasSession: boolean
+  user?: string
+  hasJWT: boolean
+  jwtLength?: number
+} | null
+
+type BackendTest = {
+  success: boolean
+  error?: string
+  data?: unknown
+} | null
+
 export default function DebugPage() {
-  const [authState, setAuthState] = useState<any>(null)
-  const [backendTest, setBackendTest] = useState<any>(null)
+  const [authState, setAuthState] = useState<AuthState>(null)
+  const [backendTest, setBackendTest] = useState<BackendTest>(null)
 
   useEffect(() => {
     // Check auth state

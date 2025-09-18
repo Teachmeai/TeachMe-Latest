@@ -84,6 +84,8 @@ export function ChatDashboard({ user, onLogout, onSendMessage, onProfileUpdate, 
   const isMobile = useIsMobile()
   const [sidebarOpen, setSidebarOpen] = React.useState(!isMobile) // Default to closed on mobile
   const [sidebarAnimating, setSidebarAnimating] = React.useState(false)
+  const [sidebarWidth, setSidebarWidth] = React.useState<number>(320)
+  const isResizingRef = React.useRef(false)
   const [activeChat, setActiveChat] = React.useState<string | null>(null)
   const [searchQuery, setSearchQuery] = React.useState("")
   const [userProfile, setUserProfile] = React.useState<UserProfile>(user)
@@ -102,6 +104,28 @@ export function ChatDashboard({ user, onLogout, onSendMessage, onProfileUpdate, 
       setSidebarOpen(true)
     }
   }, [isMobile])
+
+  // Sidebar resize handlers (desktop only)
+  const onResizeMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (isMobile) return
+    e.preventDefault()
+    isResizingRef.current = true
+    const startX = e.clientX
+    const startWidth = sidebarWidth
+    const onMove = (ev: MouseEvent) => {
+      if (!isResizingRef.current) return
+      const delta = ev.clientX - startX
+      const next = Math.min(Math.max(startWidth + delta, 240), 520)
+      setSidebarWidth(next)
+    }
+    const onUp = () => {
+      isResizingRef.current = false
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+  }
   
   // Mock chat sessions
   const [chatSessions, setChatSessions] = React.useState<ChatSession[]>([
@@ -239,9 +263,10 @@ export function ChatDashboard({ user, onLogout, onSendMessage, onProfileUpdate, 
             "sidebar-panel flex flex-col sidebar-transition",
             isMobile
               ? "fixed left-0 top-0 z-50 h-full w-80 transform transition-transform duration-300"
-              : "w-80 flex-shrink-0",
+              : "flex-shrink-0",
             sidebarAnimating ? "sidebar-slide-in" : ""
           )}
+          style={!isMobile ? { width: `${sidebarWidth}px` } : undefined}
         >
           {/* Sidebar Header */}
           <div className="p-4 border-b border-border">
@@ -398,6 +423,16 @@ export function ChatDashboard({ user, onLogout, onSendMessage, onProfileUpdate, 
             </DropdownMenu>
           </div>
         </div>
+      )}
+
+      {/* Desktop resize handle */}
+      {!isMobile && sidebarOpen && (
+        <div
+          onMouseDown={onResizeMouseDown}
+          title="Drag to resize"
+          style={{ cursor: 'col-resize' }}
+          className="w-1 hover:w-2 transition-[width] duration-150 bg-border/60 dark:bg-border/40"
+        />
       )}
 
       {/* Main Content */}

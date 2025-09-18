@@ -147,39 +147,7 @@ export default function HomePage() {
     )
   }
 
-  // Fallback: User is authenticated but no backend session
-  if (user && !session && !loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center max-w-md">
-          <div className="w-20 h-20 bg-gradient-to-br from-orange-500 to-red-500 rounded-full mx-auto mb-6 flex items-center justify-center shadow-glow">
-            <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center">
-              <span className="text-orange-500 font-bold">!</span>
-            </div>
-          </div>
-          <h2 className="text-2xl font-bold mb-4">Session Setup Required</h2>
-          <p className="text-muted-foreground mb-6">
-            We need to set up your session. Please try refreshing the page or logging out and back in.
-          </p>
-          <div className="space-y-3">
-            <button 
-              onClick={() => window.location.reload()}
-              className="w-full bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg"
-            >
-              Refresh Page
-            </button>
-            <button 
-              onClick={handleLogout}
-              className="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-lg"
-            >
-              Logout & Try Again
-            </button>
-          </div>
-        </div>
-        <DebugInfo auth={{ user, session, logout }} />
-      </div>
-    )
-  }
+  // No explicit fallback; background retries will continue until session arrives
 
   return <DebugInfo auth={{ user, session, logout }} />
 }

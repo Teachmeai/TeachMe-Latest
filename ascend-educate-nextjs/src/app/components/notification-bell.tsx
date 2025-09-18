@@ -20,7 +20,7 @@ export const addTestNotification = (addNotification: (notification: Omit<Notific
     {
       type: 'learning' as const,
       title: 'Study Streak!',
-      message: 'Congratulations! You\'ve completed 7 days in a row. Keep up the great work!',
+      message: 'Congratulations! You\u2019ve completed 7 days in a row. Keep up the great work!',
       actionUrl: '/achievements',
       actionText: 'View Achievements'
     },

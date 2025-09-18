@@ -60,6 +60,9 @@ async def get_session(user_id: str) -> Optional[Dict[str, Any]]:
 
 async def set_session(user_id: str, session_data: Dict[str, Any]) -> None:
     redis = get_redis()
+    # ensure exp is stamped on create/update
+    session_data = dict(session_data)
+    session_data["exp"] = int(time.time()) + SESSION_TTL_SECONDS
     log_session_operation("SET", user_id, session_data, "Creating/updating session in Redis")
     await redis.set(_session_key(user_id), json.dumps(session_data), ex=SESSION_TTL_SECONDS)
 
