@@ -61,33 +61,37 @@ export function useAuth() {
           setSession(null)
           setLoading(false)
           setIsLoggingOut(false)
+          // Reset bootstrap/dedup state so next login runs fresh
+          initialFetchDoneRef.current = false
+          lastAccessTokenRef.current = null
+          lastSignedInAtRef.current = 0
         } else if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.user) {
           if (event === 'SIGNED_IN') {
             const token = session?.access_token || null
-            // Dedup if same token as last processed
-            if (token && lastAccessTokenRef.current === token) {
-              console.log('Dedup SIGNED_IN by token - skipping duplicate event')
-              return
-            }
+            const isSameToken = token && lastAccessTokenRef.current === token
+            // Update last seen token/time
             lastAccessTokenRef.current = token
             const now = Date.now()
-            // Extend window to 5 seconds to avoid rapid duplicates
-            if (now - lastSignedInAtRef.current < 5000) {
-              console.log('Dedup SIGNED_IN by time window - skipping duplicate event')
+            const withinWindow = now - lastSignedInAtRef.current < 5000
+            lastSignedInAtRef.current = now
+            // Only skip if it's clearly the exact same token AND within window
+            if (isSameToken && withinWindow) {
+              console.log('Dedup SIGNED_IN by token+time - skipping duplicate event')
               return
             }
-            lastSignedInAtRef.current = now
           }
           console.log('User signed in or token refreshed, updating state')
           setUser(session.user)
           if (event === 'SIGNED_IN') {
-            // Avoid refetch if initial bootstrap just did it
-            if (!initialFetchDoneRef.current) {
+            // Fetch if first time, or token changed since last fetch
+            const token = session?.access_token || null
+            const tokenChanged = token && lastAccessTokenRef.current === token ? false : true
+            if (!initialFetchDoneRef.current || tokenChanged) {
               initialFetchDoneRef.current = true
               setLoading(true)
               await fetchUserSession()
             } else {
-              console.log('Skipping fetchUserSession on SIGNED_IN - already bootstrapped')
+              console.log('Skipping fetchUserSession on SIGNED_IN - already bootstrapped with same token')
             }
           } else {
             console.log('Token refreshed, keeping existing session')
