@@ -3,6 +3,7 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../../lib/supabase'
+import { backend } from '../../../lib/backend'
 
 export default function AuthCallback() {
   const router = useRouter()
@@ -21,12 +22,23 @@ export default function AuthCallback() {
 
         if (data.session) {
           console.log('Auth callback success:', data.session.user.email)
-          // Successfully authenticated, redirect to home
-          router.push('/')
+          // Prime backend session immediately
+          try {
+            let deviceId = typeof window !== 'undefined' ? window.localStorage.getItem('device-id') || '' : ''
+            if (!deviceId && typeof window !== 'undefined') {
+              deviceId = `device-${Math.random().toString(36).substr(2, 9)}`
+              window.localStorage.setItem('device-id', deviceId)
+            }
+            await backend.getMe(deviceId)
+          } catch (e) {
+            console.log('Callback prime /auth/me failed (will retry on home):', e)
+          }
+          // Redirect to home
+          router.replace('/')
         } else {
           console.log('No session found, redirecting to login')
           // No session, redirect to home (which will show login)
-          router.push('/')
+          router.replace('/')
         }
       } catch (error) {
         console.error('Unexpected error:', error)

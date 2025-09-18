@@ -43,7 +43,7 @@ import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
 import { useIsMobile } from "@/hooks/use-mobile"
 // removed quick role switcher; role management happens inside Profile
-import { useAuth } from "../../hooks/useAuth"
+import type { UserSession } from "../../lib/backend"
 
 interface UserProfile {
   name: string
@@ -76,9 +76,11 @@ interface ChatDashboardProps {
   onLogout: () => void
   onSendMessage?: () => void
   onProfileUpdate?: (profile: UserProfile) => void
+  session: UserSession | null
+  onSwitchRole: (role: string, orgId?: string) => Promise<boolean>
 }
 
-export function ChatDashboard({ user, onLogout, onSendMessage, onProfileUpdate }: ChatDashboardProps) {
+export function ChatDashboard({ user, onLogout, onSendMessage, onProfileUpdate, session, onSwitchRole }: ChatDashboardProps) {
   const isMobile = useIsMobile()
   const [sidebarOpen, setSidebarOpen] = React.useState(!isMobile) // Default to closed on mobile
   const [sidebarAnimating, setSidebarAnimating] = React.useState(false)
@@ -90,8 +92,7 @@ export function ChatDashboard({ user, onLogout, onSendMessage, onProfileUpdate }
   const [showProfileManagement, setShowProfileManagement] = React.useState(false)
   const fileInputRef = React.useRef<HTMLInputElement>(null)
   
-  // Get auth data for role switching
-  const { session, switchRole } = useAuth()
+  // Session and role switching are provided by parent to avoid double auth hooks
 
   // Update sidebar state when mobile state changes
   React.useEffect(() => {
@@ -189,7 +190,7 @@ export function ChatDashboard({ user, onLogout, onSendMessage, onProfileUpdate }
   }
 
   const handleRoleSwitch = async (role: string, orgId?: string) => {
-    const success = await switchRole(role, orgId)
+    const success = await onSwitchRole(role, orgId)
     if (success && session) {
       // Update the user profile with the new role
       const updatedProfile = {

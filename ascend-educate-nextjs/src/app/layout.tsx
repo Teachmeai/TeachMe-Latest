@@ -12,7 +12,13 @@ const inter = Inter({ subsets: ['latin'] })
 export const metadata: Metadata = {
   title: 'TeachMe AI - Educational Platform',
   description: 'AI-powered educational platform for students, teachers, and administrators',
-  viewport: 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no',
+}
+
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 }
 
 export default function RootLayout({
@@ -21,8 +27,8 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
-      <body className={inter.className}>
+    <html lang="en" suppressHydrationWarning data-scroll-behavior="smooth">
+      <body className={inter.className} suppressHydrationWarning>
         <QueryProvider>
           <ThemeProvider
             attribute="class"

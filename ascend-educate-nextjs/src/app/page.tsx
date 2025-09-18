@@ -27,9 +27,22 @@ interface UserProfile {
 }
 
 export default function HomePage() {
-  const { user, session, loading, logout } = useAuth()
+  const { user, session, loading, logout, switchRole } = useAuth()
   const isHydrated = useHydration()
   const { toast } = useToast()
+  const [sessionGrace, setSessionGrace] = React.useState(false)
+
+  // Brief grace window after user becomes available to avoid flashing the
+  // "Session Setup Required" fallback while /auth/me runs in background
+  React.useEffect(() => {
+    if (user && !session) {
+      setSessionGrace(true)
+      const t = setTimeout(() => setSessionGrace(false), 1500)
+      return () => clearTimeout(t)
+    } else {
+      setSessionGrace(false)
+    }
+  }, [user, session])
 
   // Convert backend session to frontend user profile
   const userProfile: UserProfile | null = user && session ? {
@@ -77,8 +90,8 @@ export default function HomePage() {
     })
   }
 
-  // Show loading state during hydration or auth loading
-  if (!isHydrated || loading) {
+  // Show loading only during hydration or initial auth loading BEFORE user exists
+  if (!isHydrated || (loading && !user)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
@@ -103,7 +116,7 @@ export default function HomePage() {
   }
 
   // Loading state while fetching backend session
-  if (user && !session && loading) {
+  if (user && !session && (loading || sessionGrace)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
@@ -126,6 +139,8 @@ export default function HomePage() {
           onLogout={handleLogout}
           onSendMessage={handleChatMessage}
           onProfileUpdate={handleProfileUpdate}
+          session={session}
+          onSwitchRole={switchRole}
         />
         <DebugInfo auth={{ user, session, logout }} />
       </>
