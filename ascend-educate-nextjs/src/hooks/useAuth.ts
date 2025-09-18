@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { User } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 import { backend, UserSession } from '../lib/backend'
@@ -17,8 +17,17 @@ export function useAuth() {
   const [deviceId] = useState(() => `device-${Math.random().toString(36).substr(2, 9)}`)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
   const [sessionRefreshTimer, setSessionRefreshTimer] = useState<NodeJS.Timeout | null>(null)
+  const lastSignedInAtRef = useRef(0)
+  const lastAccessTokenRef = useRef<string | null>(null)
+  const isFetchingRef = useRef(false)
+  const listenerAttachedRef = useRef(false)
+  const initialFetchDoneRef = useRef(false)
 
   useEffect(() => {
+    if (listenerAttachedRef.current) {
+      return
+    }
+    listenerAttachedRef.current = true
     let mounted = true
 
     // Get initial session
@@ -27,7 +36,14 @@ export function useAuth() {
       console.log('Initial session:', session?.user?.email, session?.access_token ? 'JWT present' : 'No JWT')
       setUser(session?.user ?? null)
       if (session?.user) {
-        fetchUserSession()
+        // Do an initial bootstrap fetch once
+        if (!initialFetchDoneRef.current) {
+          initialFetchDoneRef.current = true
+          fetchUserSession()
+          // Track the token used for bootstrap to dedup subsequent SIGNED_IN
+          lastAccessTokenRef.current = session.access_token ?? null
+          lastSignedInAtRef.current = Date.now()
+        }
       } else {
         setLoading(false)
       }
@@ -46,11 +62,33 @@ export function useAuth() {
           setLoading(false)
           setIsLoggingOut(false)
         } else if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.user) {
+          if (event === 'SIGNED_IN') {
+            const token = session?.access_token || null
+            // Dedup if same token as last processed
+            if (token && lastAccessTokenRef.current === token) {
+              console.log('Dedup SIGNED_IN by token - skipping duplicate event')
+              return
+            }
+            lastAccessTokenRef.current = token
+            const now = Date.now()
+            // Extend window to 5 seconds to avoid rapid duplicates
+            if (now - lastSignedInAtRef.current < 5000) {
+              console.log('Dedup SIGNED_IN by time window - skipping duplicate event')
+              return
+            }
+            lastSignedInAtRef.current = now
+          }
           console.log('User signed in or token refreshed, updating state')
           setUser(session.user)
           if (event === 'SIGNED_IN') {
-            setLoading(true)
-            await fetchUserSession()
+            // Avoid refetch if initial bootstrap just did it
+            if (!initialFetchDoneRef.current) {
+              initialFetchDoneRef.current = true
+              setLoading(true)
+              await fetchUserSession()
+            } else {
+              console.log('Skipping fetchUserSession on SIGNED_IN - already bootstrapped')
+            }
           } else {
             console.log('Token refreshed, keeping existing session')
           }
@@ -106,6 +144,11 @@ export function useAuth() {
       console.log('Skipping session fetch - logout in progress')
       return
     }
+    if (isFetchingRef.current) {
+      console.log('Session fetch already in progress, skipping')
+      return
+    }
+    isFetchingRef.current = true
 
     try {
       setLoading(true)
@@ -140,6 +183,7 @@ export function useAuth() {
       }
     } finally {
       setLoading(false)
+      isFetchingRef.current = false
     }
   }
 

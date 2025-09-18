@@ -97,7 +97,7 @@ export default function HomePage() {
     return (
       <>
         <LoginPage onLogin={() => {}} />
-        <DebugInfo />
+        <DebugInfo auth={{ user, session, logout }} />
       </>
     )
   }
@@ -127,7 +127,7 @@ export default function HomePage() {
           onSendMessage={handleChatMessage}
           onProfileUpdate={handleProfileUpdate}
         />
-        <DebugInfo />
+        <DebugInfo auth={{ user, session, logout }} />
       </>
     )
   }
@@ -161,10 +161,10 @@ export default function HomePage() {
             </button>
           </div>
         </div>
-        <DebugInfo />
+        <DebugInfo auth={{ user, session, logout }} />
       </div>
     )
   }
 
-  return <DebugInfo />
+  return <DebugInfo auth={{ user, session, logout }} />
 }

@@ -1,14 +1,23 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import { useAuth } from '../hooks/useAuth'
+import type { User } from '@supabase/supabase-js'
+import type { UserSession } from '../lib/backend'
 import { useNotifications } from '../hooks/useNotifications'
 import { addTestNotification } from '../app/components/notification-bell'
 
-export function DebugInfo() {
+type DebugInfoProps = {
+  auth: {
+    user: User | null
+    session: UserSession | null
+    logout: () => Promise<void>
+  }
+}
+
+export function DebugInfo({ auth }: DebugInfoProps) {
   const renderCount = useRef(0)
   const apiCallCount = useRef(0)
-  const { logout, user, session } = useAuth()
+  const { logout, user, session } = auth
   const { addNotification } = useNotifications()
 
   useEffect(() => {
