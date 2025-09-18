@@ -69,11 +69,11 @@ redis-cli ping   # expect PONG
 Option B: Memurai (Redis-compatible for Windows) — install and ensure it listens on 6379.
 
 ### Run OPA on Windows (without Docker)
-1) Download OPA:
+1) Download OPA once:
 ```
 Invoke-WebRequest "https://openpolicyagent.org/downloads/latest/opa_windows_amd64.exe" -OutFile "$env:USERPROFILE\opa.exe"
 ```
-2) Create a minimal policy at `%USERPROFILE%\policy.rego`:
+2) Project policy file location: `opa/policy.rego`
 ```
 package authz
 
@@ -83,9 +83,10 @@ allow if {
   input.role == "teacher"
 }
 ```
-3) Start OPA:
+3) Start OPA using the project policy:
 ```
-& "$env:USERPROFILE\opa.exe" run --server "$env:USERPROFILE\policy.rego"
+# From project root: C:\Users\Kamra\Desktop\Teachme backend
+& "$env:USERPROFILE\opa.exe" run --server ".\opa\policy.rego"
 ```
 OPA listens on `http://localhost:8181`.
 
@@ -162,7 +163,7 @@ Ensure `ALLOWED_ORIGINS` contains your frontend URL (e.g., `http://localhost:300
 - OPA denies: adjust `policy.rego` or your route’s `action`/`resource` to match policy.
 
 ### Notes
-- Extend policies by editing `%USERPROFILE%\policy.rego` and restarting OPA (or `PUT /v1/policies/authz`).
+- Extend policies by editing `opa/policy.rego` in the project and restarting OPA (or `PUT /v1/policies/authz`).
 - Replace the example OPA rule with your real RBAC logic.
 
 
