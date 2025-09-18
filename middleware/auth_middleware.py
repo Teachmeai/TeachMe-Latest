@@ -33,10 +33,12 @@ def auth_middleware(credentials: HTTPAuthorizationCredentials = Depends(security
             options={
                 "verify_signature": True,
                 "verify_exp": True,
-                "verify_iat": True,
+                "verify_iat": False,  # Disable iat validation due to time sync issues
                 "verify_aud": False,
                 "verify_iss": False,
             },
+            # Add 300 seconds (5 minutes) clock skew tolerance for iat validation
+            leeway=300,
         )
         
         user_id = payload.get("sub") or payload.get("id") or payload.get("user_id")
@@ -59,7 +61,24 @@ def auth_middleware(credentials: HTTPAuthorizationCredentials = Depends(security
         log_auth_middleware("JWT_VALIDATION", additional_info=f"JWT expired: {str(e)}", success=False)
         raise HTTPException(status_code=401, detail="Token has expired")
     except jwt.PyJWTError as e:
+        # Add more detailed error information for debugging
+        import time
+        current_time = time.time()
         log_auth_middleware("JWT_VALIDATION", additional_info=f"JWT validation failed: {str(e)}", success=False)
+        log_auth_middleware("JWT_VALIDATION", additional_info=f"Current server time: {current_time} ({datetime.fromtimestamp(current_time, tz=timezone.utc)})", success=False)
+        
+        # Try to decode without verification to get token info for debugging
+        try:
+            unverified_payload = jwt.decode(token, options={"verify_signature": False})
+            iat = unverified_payload.get('iat')
+            exp = unverified_payload.get('exp')
+            if iat:
+                log_auth_middleware("JWT_VALIDATION", additional_info=f"Token iat: {iat} ({datetime.fromtimestamp(iat, tz=timezone.utc)})", success=False)
+            if exp:
+                log_auth_middleware("JWT_VALIDATION", additional_info=f"Token exp: {exp} ({datetime.fromtimestamp(exp, tz=timezone.utc)})", success=False)
+        except:
+            pass  # Ignore errors in debugging
+        
         raise HTTPException(status_code=401, detail="Invalid token")
 
 

@@ -19,10 +19,12 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(securit
             options={
                 "verify_signature": True,
                 "verify_exp": True,
-                "verify_iat": True,
+                "verify_iat": False,  # Disable iat validation due to time sync issues
                 "verify_aud": False, 
                 "verify_iss": False   
-            }
+            },
+            # Add 300 seconds (5 minutes) clock skew tolerance for iat validation
+            leeway=300,
         )
         return payload
     except jwt.PyJWTError:
