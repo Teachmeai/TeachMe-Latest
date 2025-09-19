@@ -23,6 +23,28 @@ export interface BackendResponse<T> {
   data?: T
 }
 
+export interface BackendProfile {
+  id: string
+  email?: string
+  full_name?: string
+  phone?: string
+  address?: string
+  city?: string
+  state?: string
+  country?: string
+  postal_code?: string
+  date_of_birth?: string
+  bio?: string
+  avatar_url?: string
+  website?: string
+  linkedin_url?: string
+  twitter_url?: string
+  github_url?: string
+  profile_completion_percentage?: number
+  created_at?: string
+  updated_at?: string
+}
+
 class BackendClient {
   private async request<T>(
     endpoint: string,
@@ -81,6 +103,17 @@ class BackendClient {
     return this.request(`/auth/logout/force?user_id=${userId}`, {
       method: 'POST',
       headers: deviceId ? { 'X-Device-Id': deviceId } : {},
+    })
+  }
+
+  async getProfile(): Promise<BackendResponse<BackendProfile>> {
+    return this.request<BackendProfile>('/profiles/me')
+  }
+
+  async updateProfile(payload: Partial<BackendProfile>): Promise<BackendResponse<BackendProfile>> {
+    return this.request<BackendProfile>('/profiles/me', {
+      method: 'PUT',
+      body: JSON.stringify(payload),
     })
   }
 }

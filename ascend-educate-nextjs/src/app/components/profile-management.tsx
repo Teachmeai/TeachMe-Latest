@@ -15,6 +15,8 @@ import { FormActions } from "../../components/forms/FormActions"
 import { getRoleById } from "../../config/roles"
 import { cn } from "@/lib/utils"
 import { RoleSwitcher } from "../../components/role-switcher"
+import { useEffect, useState } from "react"
+import { backend } from "../../lib/backend"
 
 export function ProfileManagement({ 
   user, 
@@ -35,19 +37,36 @@ export function ProfileManagement({
   activeOrgId?: string
   onSwitchRole?: (role: string, orgId?: string) => Promise<boolean> | void
 }) {
+  const [profile, setProfile] = useState<any | null>(null)
+
+  useEffect(() => {
+    let mounted = true
+    const load = async () => {
+      const resp = await backend.getProfile()
+      if (mounted && resp.ok && resp.data) {
+        setProfile(resp.data)
+      }
+    }
+    load()
+    return () => { mounted = false }
+  }, [])
+
   const {
     isEditing,
     formData,
     selectedRole,
     roleData,
-    errors,
+    basicErrors,
+    roleErrors,
     handleEdit,
     handleCancel,
     handleSave,
+    handleSaveBasic,
+    handleSaveRole,
     handleFieldChange,
     handleRoleFieldChange,
     handleRoleChange
-  } = useProfileForm({ initialUser: user, onProfileUpdate })
+  } = useProfileForm({ initialUser: user, onProfileUpdate, initialProfile: profile ?? undefined })
 
   const currentRole = getRoleById(selectedRole)
 
@@ -70,17 +89,17 @@ export function ProfileManagement({
         </h3>
         <FormActions
           isEditing={isEditing}
-          errors={errors}
+          errors={basicErrors}
           onEdit={handleEdit}
           onCancel={handleCancel}
-          onSave={handleSave}
+          onSave={handleSaveBasic}
         />
       </div>
 
       {isEditing ? (
         <BasicInfoForm
           formData={formData}
-          errors={errors}
+          errors={basicErrors}
           onFieldChange={handleFieldChange}
           onImageChange={(imageUrl) => handleFieldChange('profilePicture', imageUrl)}
         />
@@ -88,49 +107,49 @@ export function ProfileManagement({
         <div className="space-y-4">
           <div className="flex items-center space-x-4">
             <Avatar className="h-16 w-16">
-              <AvatarImage src={user.avatar} alt={user.name} />
+              <AvatarImage src={(profile?.avatar_url) || user.avatar} alt={user.name} />
               <AvatarFallback className="bg-primary/10 text-primary text-lg">
                 {getInitials(user.name)}
               </AvatarFallback>
             </Avatar>
             <div>
-              <h4 className="text-lg font-semibold">{user.name}</h4>
+              <h4 className="text-lg font-semibold">{profile?.full_name || user.name}</h4>
               <p className="text-muted-foreground">{user.email}</p>
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <p className="text-sm font-medium text-muted-foreground">Institute</p>
-              <p className="text-sm">{user.institute || 'Not specified'}</p>
+              <p className="text-sm font-medium text-muted-foreground">Address</p>
+              <p className="text-sm">{profile ? [profile.address, profile.city, profile.state, profile.country].filter(Boolean).join(", ") : 'Not specified'}</p>
             </div>
             <div>
               <p className="text-sm font-medium text-muted-foreground">Phone</p>
-              <p className="text-sm">{user.phoneNumber || 'Not specified'}</p>
+              <p className="text-sm">{profile?.phone || 'Not specified'}</p>
             </div>
           </div>
 
-          {user.socialMedia && Object.values(user.socialMedia).some(value => value) && (
+          {(profile?.linkedin_url || profile?.twitter_url || profile?.github_url || profile?.website) && (
             <div>
               <p className="text-sm font-medium text-muted-foreground mb-2">Social Media</p>
               <div className="flex flex-wrap gap-2">
-                {user.socialMedia.linkedin && (
-                  <a href={user.socialMedia.linkedin} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline">
+                {profile?.linkedin_url && (
+                  <a href={profile.linkedin_url} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline">
                     LinkedIn
                   </a>
                 )}
-                {user.socialMedia.twitter && (
-                  <a href={user.socialMedia.twitter} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline">
+                {profile?.twitter_url && (
+                  <a href={profile.twitter_url} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline">
                     Twitter
                   </a>
                 )}
-                {user.socialMedia.github && (
-                  <a href={user.socialMedia.github} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline">
+                {profile?.github_url && (
+                  <a href={profile.github_url} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline">
                     GitHub
                   </a>
                 )}
-                {user.socialMedia.website && (
-                  <a href={user.socialMedia.website} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline">
+                {profile?.website && (
+                  <a href={profile.website} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline">
                     Website
                   </a>
                 )}
@@ -151,12 +170,12 @@ export function ProfileManagement({
             <span className="ml-2 text-sm text-primary font-normal">(Editing)</span>
           )}
         </h3>
-        <FormActions
+          <FormActions
           isEditing={isEditing}
-          errors={errors}
+          errors={roleErrors}
           onEdit={handleEdit}
           onCancel={handleCancel}
-          onSave={handleSave}
+          onSave={handleSaveRole}
         />
       </div>
 
@@ -164,7 +183,7 @@ export function ProfileManagement({
         <RoleManagementForm
           selectedRole={selectedRole}
           roleData={roleData}
-          errors={errors}
+          errors={roleErrors}
           onRoleChange={handleRoleChange}
           onRoleFieldChange={handleRoleFieldChange}
         />

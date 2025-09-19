@@ -44,6 +44,7 @@ import { cn } from "@/lib/utils"
 import { useIsMobile } from "@/hooks/use-mobile"
 // removed quick role switcher; role management happens inside Profile
 import type { UserSession } from "../../lib/backend"
+import { backend } from "../../lib/backend"
 
 interface UserProfile {
   name: string
@@ -95,6 +96,36 @@ export function ChatDashboard({ user, onLogout, onSendMessage, onProfileUpdate, 
   const fileInputRef = React.useRef<HTMLInputElement>(null)
   
   // Session and role switching are provided by parent to avoid double auth hooks
+
+  // Bootstrap profile from backend and gate chat until complete
+  React.useEffect(() => {
+    let mounted = true
+    const loadProfile = async () => {
+      const resp = await backend.getProfile()
+      if (!mounted || !resp.ok || !resp.data) return
+      const p = resp.data as any
+      setUserProfile(prev => ({
+        ...prev,
+        name: p.full_name || prev.name,
+        avatar: p.avatar_url || prev.avatar,
+        phoneNumber: p.phone || prev.phoneNumber,
+        socialMedia: {
+          ...(prev.socialMedia || {}),
+          linkedin: p.linkedin_url || prev.socialMedia?.linkedin,
+          twitter: p.twitter_url || prev.socialMedia?.twitter,
+          github: p.github_url || prev.socialMedia?.github,
+          website: p.website || prev.socialMedia?.website,
+        },
+        isProfileComplete: (p.profile_completion_percentage ?? 0) >= 100,
+        profileCompletionPercentage: p.profile_completion_percentage ?? prev.profileCompletionPercentage,
+      }))
+      if ((p.profile_completion_percentage ?? 0) < 100) {
+        setShowProfileManagement(true)
+      }
+    }
+    loadProfile()
+    return () => { mounted = false }
+  }, [])
 
   // Update sidebar state when mobile state changes
   React.useEffect(() => {
@@ -204,13 +235,38 @@ export function ChatDashboard({ user, onLogout, onSendMessage, onProfileUpdate, 
     }
   }
 
-  const handleProfileUpdate = (profile: UserProfile) => {
+  const handleProfileUpdate = async (profile: UserProfile) => {
     setUserProfile(profile)
     if (onProfileUpdate) {
       onProfileUpdate(profile)
     }
+    // Refresh from backend to get latest completion percentage without full page reload
+    try {
+      const resp = await backend.getProfile()
+      if (resp.ok && resp.data) {
+        const p: any = resp.data
+        setUserProfile(prev => ({
+          ...prev,
+          name: p.full_name || prev.name,
+          avatar: p.avatar_url || prev.avatar,
+          phoneNumber: p.phone || prev.phoneNumber,
+          socialMedia: {
+            ...(prev.socialMedia || {}),
+            linkedin: p.linkedin_url || prev.socialMedia?.linkedin,
+            twitter: p.twitter_url || prev.socialMedia?.twitter,
+            github: p.github_url || prev.socialMedia?.github,
+            website: p.website || prev.socialMedia?.website,
+          },
+          isProfileComplete: (p.profile_completion_percentage ?? 0) >= 100,
+          profileCompletionPercentage: p.profile_completion_percentage ?? prev.profileCompletionPercentage,
+        }))
+        // Close the profile modal if completion is now 100%
+        if ((p.profile_completion_percentage ?? 0) >= 100) {
+          setShowProfileManagement(false)
+        }
+      }
+    } catch {}
     setProfileDialogOpen(false)
-    setShowProfileManagement(false)
   }
 
   const handleRoleSwitch = async (role: string, orgId?: string) => {

@@ -70,10 +70,6 @@ export const validateBasicFields = (formData: FormData): ValidationErrors => {
     errors.email = emailError
   }
 
-  if (!formData.institute.trim()) {
-    errors.institute = 'Institute is required'
-  }
-
   const phoneError = validatePhone(formData.phoneNumber)
   if (phoneError) {
     errors.phoneNumber = phoneError
@@ -125,12 +121,11 @@ export const calculateProfileCompletion = (profile: UserProfile): { isComplete: 
   let totalRequiredFields = 0
 
   // Basic required fields
-  const basicFields = ['name', 'email', 'institute', 'phoneNumber', 'role']
+  const basicFields = ['name', 'email', 'phoneNumber', 'role']
   totalRequiredFields += basicFields.length
   
   if (profile.name?.trim()) completedFields++
   if (profile.email?.trim()) completedFields++
-  if (profile.institute?.trim()) completedFields++
   if (profile.phoneNumber?.trim()) completedFields++
   if (profile.role?.trim()) completedFields++
 

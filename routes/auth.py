@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, Header
 from datetime import datetime, timezone
 
 from middleware.auth_middleware import get_user_id
+from core.supabase import get_supabase_admin
 from service.session_service import get_session, set_session, delete_session
 from service.user_service import build_session_payload, set_profile_active_role
 
@@ -40,6 +41,33 @@ async def me(user_id: str = Depends(get_user_id), x_device_id: str | None = Head
         else:
             log_auth_operation("GET_ME", user_id, "Existing session found and returned")
     
+    # Attach profile details for convenience
+    try:
+        supabase = get_supabase_admin()
+        profile_resp = supabase.table("profiles").select("*").eq("id", user_id).single().execute()
+        profile_data = profile_resp.data or None
+        if profile_data is None:
+            # lazily create a minimal profile row if missing
+            now_iso = datetime.now(timezone.utc).isoformat()
+            create_resp = supabase.table("profiles").insert({
+                "id": user_id,
+                "profile_completion_percentage": 0,
+                "created_at": now_iso,
+                "updated_at": now_iso,
+            }).execute()
+            profile_data = (create_resp.data or [None])[0]
+        # attach auth email for convenience
+        try:
+            auth_response = supabase.schema("auth").table("users").select("email").eq("id", user_id).single().execute()
+            if auth_response.data and profile_data is not None:
+                profile_data["email"] = auth_response.data.get("email")
+        except Exception:
+            pass
+        session["profile"] = profile_data
+    except Exception:
+        # do not fail /me if profile fetch fails
+        pass
+
     return session
 
 

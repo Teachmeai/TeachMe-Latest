@@ -64,20 +64,6 @@ export function BasicInfoForm({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="institute">Name of Institute *</Label>
-          <Input
-            id="institute"
-            value={formData.institute}
-            onChange={(e) => onFieldChange('institute', e.target.value)}
-            className={cn(errors.institute && "border-destructive")}
-            placeholder="Enter your institute name"
-          />
-          {errors.institute && (
-            <p className="text-sm text-destructive">{errors.institute}</p>
-          )}
-        </div>
-
-        <div className="space-y-2">
           <Label htmlFor="phoneNumber">Phone Number *</Label>
           <Input
             id="phoneNumber"
@@ -93,6 +79,64 @@ export function BasicInfoForm({
           <p className="text-xs text-muted-foreground">
             Enter your phone number with country code or local format
           </p>
+        </div>
+      </div>
+
+      {/* Address & Bio */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="space-y-2">
+          <Label htmlFor="address">Address</Label>
+          <Input
+            id="address"
+            value={formData.address}
+            onChange={(e) => onFieldChange('address', e.target.value)}
+            placeholder="Street address"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="city">City</Label>
+          <Input
+            id="city"
+            value={formData.city}
+            onChange={(e) => onFieldChange('city', e.target.value)}
+            placeholder="City"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="state">State</Label>
+          <Input
+            id="state"
+            value={formData.state}
+            onChange={(e) => onFieldChange('state', e.target.value)}
+            placeholder="State"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="country">Country</Label>
+          <Input
+            id="country"
+            value={formData.country}
+            onChange={(e) => onFieldChange('country', e.target.value)}
+            placeholder="Country"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="postalCode">Postal Code</Label>
+          <Input
+            id="postalCode"
+            value={formData.postalCode}
+            onChange={(e) => onFieldChange('postalCode', e.target.value)}
+            placeholder="Postal/ZIP code"
+          />
+        </div>
+        <div className="space-y-2 lg:col-span-2">
+          <Label htmlFor="bio">Bio</Label>
+          <Input
+            id="bio"
+            value={formData.bio}
+            onChange={(e) => onFieldChange('bio', e.target.value)}
+            placeholder="A short bio about you"
+          />
         </div>
       </div>
 

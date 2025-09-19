@@ -41,8 +41,13 @@ export interface RoleField {
 export interface FormData {
   name: string
   email: string
-  institute: string
   phoneNumber: string
+  address: string
+  city: string
+  state: string
+  country: string
+  postalCode: string
+  bio: string
   profilePicture: string
   linkedin: string
   twitter: string
