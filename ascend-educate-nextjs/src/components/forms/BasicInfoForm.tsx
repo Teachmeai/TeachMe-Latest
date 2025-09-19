@@ -1,8 +1,10 @@
 "use client"
 
 import * as React from "react"
+import { useState, useMemo } from "react"
 import { Input } from "../../app/components/ui/input"
 import { Label } from "../../app/components/ui/label"
+import { Badge } from "../../app/components/ui/badge"
 import { ProfilePictureUpload } from "./ProfilePictureUpload"
 import { FormData, ValidationErrors } from "../../types"
 import { cn } from "../../app/lib/utils"
@@ -22,6 +24,40 @@ export function BasicInfoForm({
   onImageChange,
   className
 }: BasicInfoFormProps) {
+  const [socialLink, setSocialLink] = useState("")
+
+  const detectPlatform = (url: string): keyof Pick<FormData, 'linkedin' | 'twitter' | 'github' | 'website'> => {
+    const lower = url.toLowerCase()
+    try {
+      const u = new URL(lower)
+      const host = u.hostname.replace("www.", "")
+      if (host.includes("linkedin.com")) return 'linkedin'
+      if (host.includes("twitter.com") || host.includes("x.com")) return 'twitter'
+      if (host.includes("github.com")) return 'github'
+      return 'website'
+    } catch {
+      // not a full URL; naive detection
+      if (lower.includes("linkedin")) return 'linkedin'
+      if (lower.includes("twitter") || lower.includes("x.com")) return 'twitter'
+      if (lower.includes("github")) return 'github'
+      return 'website'
+    }
+  }
+
+  const currentLinks = useMemo(() => [
+    { label: 'LinkedIn', key: 'linkedin', value: formData.linkedin },
+    { label: 'Twitter', key: 'twitter', value: formData.twitter },
+    { label: 'GitHub', key: 'github', value: formData.github },
+    { label: 'Website', key: 'website', value: formData.website },
+  ], [formData.linkedin, formData.twitter, formData.github, formData.website])
+
+  const handleSocialLinkSubmit = () => {
+    if (!socialLink.trim()) return
+    const platform = detectPlatform(socialLink.trim())
+    onFieldChange(platform as keyof FormData, socialLink.trim())
+    setSocialLink("")
+  }
+
   return (
     <div className={cn("space-y-8", className)}>
       {/* Profile Picture */}
@@ -140,67 +176,40 @@ export function BasicInfoForm({
         </div>
       </div>
 
-      {/* Social Media Links */}
-      <div className="space-y-6">
+      {/* Social Media Links (Smart input) */}
+      <div className="space-y-4">
         <h4 className="text-lg font-semibold">Social Media Links</h4>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="space-y-2">
-            <Label htmlFor="linkedin">LinkedIn</Label>
+        <div className="space-y-2">
+          <Label htmlFor="social-link">Paste a social link</Label>
+          <div className="flex gap-2">
             <Input
-              id="linkedin"
+              id="social-link"
               type="url"
-              value={formData.linkedin}
-              onChange={(e) => onFieldChange('linkedin', e.target.value)}
-              className={cn(errors.linkedin && "border-destructive")}
-              placeholder="https://linkedin.com/in/yourprofile"
+              value={socialLink}
+              onChange={(e) => setSocialLink(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleSocialLinkSubmit() } }}
+              placeholder="Paste LinkedIn, Twitter/X, GitHub, or Website URL and press Enter"
             />
-            {errors.linkedin && (
-              <p className="text-sm text-destructive">{errors.linkedin}</p>
-            )}
+            <button
+              type="button"
+              className="px-3 py-2 text-sm rounded-md bg-primary text-white hover:bg-primary/90"
+              onClick={handleSocialLinkSubmit}
+            >
+              Add
+            </button>
           </div>
+          <p className="text-xs text-muted-foreground">We'll detect the platform and place it in the right field.</p>
+        </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="twitter">Twitter</Label>
-            <Input
-              id="twitter"
-              type="url"
-              value={formData.twitter}
-              onChange={(e) => onFieldChange('twitter', e.target.value)}
-              className={cn(errors.twitter && "border-destructive")}
-              placeholder="https://twitter.com/yourprofile"
-            />
-            {errors.twitter && (
-              <p className="text-sm text-destructive">{errors.twitter}</p>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="github">GitHub</Label>
-            <Input
-              id="github"
-              type="url"
-              value={formData.github}
-              onChange={(e) => onFieldChange('github', e.target.value)}
-              className={cn(errors.github && "border-destructive")}
-              placeholder="https://github.com/yourprofile"
-            />
-            {errors.github && (
-              <p className="text-sm text-destructive">{errors.github}</p>
-            )}
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="website">Website</Label>
-            <Input
-              id="website"
-              type="url"
-              value={formData.website}
-              onChange={(e) => onFieldChange('website', e.target.value)}
-              className={cn(errors.website && "border-destructive")}
-              placeholder="https://yourwebsite.com"
-            />
-            {errors.website && (
-              <p className="text-sm text-destructive">{errors.website}</p>
+        <div className="space-y-2">
+          <Label>Added links</Label>
+          <div className="flex flex-wrap gap-2">
+            {formData.linkedin && <Badge variant="secondary">LinkedIn added</Badge>}
+            {formData.twitter && <Badge variant="secondary">Twitter/X added</Badge>}
+            {formData.github && <Badge variant="secondary">GitHub added</Badge>}
+            {formData.website && <Badge variant="secondary">Website added</Badge>}
+            {!formData.linkedin && !formData.twitter && !formData.github && !formData.website && (
+              <p className="text-sm text-muted-foreground">No links added yet.</p>
             )}
           </div>
         </div>
