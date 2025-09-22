@@ -1,4 +1,29 @@
-# .env
-# env.backend
-# env
-# ascend-educate-nextjs/.env.local
+# Environment files
+.env
+env
+env.backend
+ascend-educate-nextjs/.env.local
+
+# Virtual environments
+.venv/
+venv/
+
+# Python cache and compiled files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# IDE/Editor files
+.idea/
+.vscode/
+*.swp
+
+# Build/output files
+build/
+dist/
+*.log
