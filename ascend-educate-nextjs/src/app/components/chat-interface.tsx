@@ -1,11 +1,12 @@
 "use client"
 
 import * as React from "react"
-import { Send, Paperclip, X, File } from "lucide-react"
+import { Send, Paperclip, X, File, Wifi, WifiOff } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
+import { useWebSocket, ChatMessage } from "../../hooks/useWebSocket"
 
 interface Message {
   id: string
@@ -35,16 +36,27 @@ export function ChatInterface({
 }: ChatInterfaceProps) {
   const [message, setMessage] = React.useState("")
   const [files, setFiles] = React.useState<FileAttachment[]>([])
-  const [messages, setMessages] = React.useState<Message[]>([
-    {
-      id: "1",
-      type: "ai",
-      content: "Hello! I'm TeachMe AI, your personalized learning assistant. How can I help you today?",
-      timestamp: new Date().toISOString(),
-    }
-  ])
+  
+  // Use WebSocket hook
+  const { 
+    isConnected, 
+    isConnecting, 
+    error, 
+    messages: wsMessages, 
+    sendMessage, 
+    connect, 
+    disconnect 
+  } = useWebSocket()
 
   const fileInputRef = React.useRef<HTMLInputElement>(null)
+  const scrollAreaRef = React.useRef<HTMLDivElement>(null)
+
+  // Auto-scroll to bottom when new messages arrive
+  React.useEffect(() => {
+    if (scrollAreaRef.current) {
+      scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight
+    }
+  }, [wsMessages])
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = Array.from(event.target.files || [])
@@ -64,29 +76,14 @@ export function ChatInterface({
   const handleSend = () => {
     if (!message.trim() && files.length === 0) return
 
-    const newMessage: Message = {
-      id: Date.now().toString(),
-      type: "user",
-      content: message,
-      timestamp: new Date().toISOString(),
-      files: files.length > 0 ? files : undefined,
+    // Send message via WebSocket
+    const success = sendMessage(message)
+    
+    if (success) {
+      onSendMessage?.()
+      setMessage("")
+      setFiles([])
     }
-
-    setMessages(prev => [...prev, newMessage])
-    onSendMessage?.()
-    setMessage("")
-    setFiles([])
-
-    // Simulate AI response
-    setTimeout(() => {
-      const aiResponse: Message = {
-        id: (Date.now() + 1).toString(),
-        type: "ai",
-        content: "I understand your question. Let me help you with that...",
-        timestamp: new Date().toISOString(),
-      }
-      setMessages(prev => [...prev, aiResponse])
-    }, 1000)
   }
 
   const formatFileSize = (bytes: number) => {
@@ -98,11 +95,11 @@ export function ChatInterface({
   }
 
   return (
-    <div className={cn("flex flex-col h-full", className)}>
+    <div className={cn("flex flex-col h-screen overflow-hidden", className)}>
       {/* Messages Area */}
-      <ScrollArea className="flex-1 p-2 sm:p-4 scroll-area">
+      <ScrollArea ref={scrollAreaRef} className="p-2 sm:p-4 scroll-area h-[34rem] ">
         <div className="space-y-4 sm:space-y-6 max-w-4xl mx-auto">
-          {messages.map((msg, index) => (
+          {wsMessages.map((msg, index) => (
             <div
               key={msg.id}
               className={cn(
@@ -119,7 +116,7 @@ export function ChatInterface({
                 )}
                 style={{ animationDelay: `${index * 0.1}s` }}
               >
-                <p className="text-sm sm:text-sm leading-relaxed">{msg.content}</p>
+                <p className="text-sm sm:text-sm leading-relaxed">{msg.message}</p>
                 {msg.files && msg.files.length > 0 && (
                   <div className="mt-2 sm:mt-3 space-y-1 sm:space-y-2">
                     {msg.files.map((file) => (
@@ -166,8 +163,43 @@ export function ChatInterface({
         </div>
       )}
 
+      {/* Connection Status */}
+      <div className="px-3 sm:px-4 py-2">
+        <div className="max-w-4xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            {isConnected ? (
+              <>
+                <Wifi className="h-3 w-3 text-green-500" />
+                <span>Connected</span>
+              </>
+            ) : isConnecting ? (
+              <>
+                <div className="h-3 w-3 rounded-full bg-yellow-500 animate-pulse" />
+                <span>Connecting...</span>
+              </>
+            ) : (
+              <>
+                <WifiOff className="h-3 w-3 text-red-500" />
+                <span>Disconnected</span>
+                {error && <span className="text-red-500">({error})</span>}
+              </>
+            )}
+          </div>
+          {!isConnected && !isConnecting && (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={connect}
+              className="text-xs h-6 px-2"
+            >
+              Reconnect
+            </Button>
+          )}
+        </div>
+      </div>
+
       {/* Input Area */}
-      <div className="chat-input-container p-3 sm:p-4">
+      <div className="chat-input-container p-3 sm:p-4 flex-shrink-0">
         <div className="flex items-end gap-2 sm:gap-3 max-w-4xl mx-auto">
           <div className="flex-1 relative">
             <Input
@@ -201,7 +233,7 @@ export function ChatInterface({
             variant="default"
             size="icon"
             onClick={handleSend}
-            disabled={!message.trim() && files.length === 0}
+            disabled={(!message.trim() && files.length === 0) || !isConnected}
             className="chat-send-button h-10 w-10 sm:h-12 sm:w-12 flex-shrink-0"
           >
             <Send className="h-4 w-4" />

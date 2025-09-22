@@ -563,7 +563,7 @@ export function ChatDashboard({ user, onLogout, onSendMessage, onProfileUpdate, 
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 bg-background">
+        <div className="flex-1 bg-background h-screen overflow-hidden">
           {showProfileManagement ? (
             <ProfileManagement
               user={userProfile}
