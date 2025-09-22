@@ -26,7 +26,8 @@ export function ProfileManagement({
   roles,
   activeRole,
   activeOrgId,
-  onSwitchRole
+  onSwitchRole,
+  onRefreshSession
 }: {
   user: any
   onProfileUpdate?: (u: any) => void
@@ -36,6 +37,7 @@ export function ProfileManagement({
   activeRole?: string
   activeOrgId?: string
   onSwitchRole?: (role: string, orgId?: string) => Promise<boolean> | void
+  onRefreshSession?: () => Promise<void>
 }) {
   const [profile, setProfile] = useState<any | null>(null)
 
@@ -64,9 +66,8 @@ export function ProfileManagement({
     handleSaveBasic,
     handleSaveRole,
     handleFieldChange,
-    handleRoleFieldChange,
-    handleRoleChange
-  } = useProfileForm({ initialUser: user, onProfileUpdate, initialProfile: profile ?? undefined })
+    handleRoleFieldChange
+  } = useProfileForm({ initialUser: user, onProfileUpdate, activeRole, initialProfile: profile ?? undefined })
 
   const currentRole = getRoleById(selectedRole)
 
@@ -184,8 +185,19 @@ export function ProfileManagement({
           selectedRole={selectedRole}
           roleData={roleData}
           errors={roleErrors}
-          onRoleChange={handleRoleChange}
           onRoleFieldChange={handleRoleFieldChange}
+          hasGlobalRole={roles?.some(r => r.scope === 'global')}
+          userRoles={roles}
+          onRoleAssigned={async () => {
+            // Refresh the session to get updated roles
+            if (onRefreshSession) {
+              await onRefreshSession()
+            }
+            // Also trigger a profile update if available
+            if (onProfileUpdate) {
+              onProfileUpdate({ ...user, role: activeRole })
+            }
+          }}
         />
       ) : (
         <div className="space-y-4">

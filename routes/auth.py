@@ -1,5 +1,6 @@
-from fastapi import APIRouter, Depends, Header
+from fastapi import APIRouter, Depends, Header, HTTPException
 from datetime import datetime, timezone
+from pydantic import BaseModel
 
 from middleware.auth_middleware import get_user_id
 from core.supabase import get_supabase_admin
@@ -19,6 +20,9 @@ def log_auth_operation(operation: str, user_id: str, additional_info: str = "", 
     print(f"   ⏰ Timestamp: {datetime.now(timezone.utc).isoformat()}")
     print("   " + "="*50)
 
+
+class AssignGlobalRoleRequest(BaseModel):
+    role: str  # 'student' or 'teacher'
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -123,6 +127,61 @@ async def logout(user_id: str = Depends(get_user_id), x_device_id: str | None = 
     result = {"ok": True}
     log_auth_operation("LOGOUT", user_id, "Logout completed successfully", result)
     return result
+
+
+@router.post("/assign-global-role")
+async def assign_global_role(
+    request: AssignGlobalRoleRequest, 
+    user_id: str = Depends(get_user_id)
+):
+    """
+    Assign a global role (student or teacher) to the current user.
+    This allows users without global roles to become global students or teachers.
+    """
+    log_auth_operation("ASSIGN_GLOBAL_ROLE", user_id, f"Requested role: {request.role}")
+    
+    # Validate role
+    if request.role not in ['student', 'teacher']:
+        log_auth_operation("ASSIGN_GLOBAL_ROLE", user_id, f"Invalid role: {request.role}", success=False)
+        raise HTTPException(status_code=400, detail="Role must be 'student' or 'teacher'")
+    
+    supabase = get_supabase_admin()
+    
+    try:
+        # Check if user already has this global role
+        existing_role_resp = supabase.table("user_roles").select("*").eq("user_id", user_id).eq("role", request.role).execute()
+        
+        if existing_role_resp.data:
+            log_auth_operation("ASSIGN_GLOBAL_ROLE", user_id, f"User already has global role: {request.role}")
+            return {"ok": True, "message": f"You already have the {request.role} role", "role": request.role}
+        
+        # Allow multiple global roles - removed the restriction
+        
+        # Assign the global role
+        insert_resp = supabase.table("user_roles").insert({
+            "user_id": user_id,
+            "role": request.role
+        }).execute()
+        
+        if not insert_resp.data:
+            log_auth_operation("ASSIGN_GLOBAL_ROLE", user_id, "Failed to insert global role", success=False)
+            raise HTTPException(status_code=500, detail="Failed to assign role")
+        
+        # Update profile active_role if user doesn't have one
+        profile_resp = supabase.table("profiles").select("active_role").eq("id", user_id).single().execute()
+        if profile_resp.data and not profile_resp.data.get("active_role"):
+            supabase.table("profiles").update({"active_role": request.role}).eq("id", user_id).execute()
+        
+        # Refresh session to include new role
+        session = await build_session_payload(user_id)
+        await set_session(user_id, session)
+        
+        log_auth_operation("ASSIGN_GLOBAL_ROLE", user_id, f"Successfully assigned global role: {request.role}")
+        return {"ok": True, "message": f"Successfully assigned {request.role} role", "role": request.role}
+        
+    except Exception as e:
+        log_auth_operation("ASSIGN_GLOBAL_ROLE", user_id, f"Error assigning role: {str(e)}", success=False)
+        raise HTTPException(status_code=500, detail="Failed to assign role")
 
 
 @router.post("/logout/force")

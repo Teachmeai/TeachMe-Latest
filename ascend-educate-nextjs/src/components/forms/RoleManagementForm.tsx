@@ -5,53 +5,114 @@ import { Input } from "../../app/components/ui/input"
 import { Label } from "../../app/components/ui/label"
 import { Textarea } from "../../app/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../app/components/ui/select"
+import { Button } from "../../app/components/ui/button"
 import { ROLES, getRoleById } from "../../config/roles"
 import { ValidationErrors } from "../../types"
 import { cn } from "../../app/lib/utils"
+import { backend } from "../../lib/backend"
+import { useToast } from "../../app/hooks/use-toast"
 
 interface RoleManagementFormProps {
   selectedRole: string
   roleData: Record<string, string>
   errors: ValidationErrors
-  onRoleChange: (roleId: string) => void
   onRoleFieldChange: (field: string, value: string) => void
   className?: string
+  hasGlobalRole?: boolean
+  userRoles?: Array<{ scope: 'global' | 'org'; role: string; org_id?: string; org_name?: string }>
+  onRoleAssigned?: () => void
 }
 
 export function RoleManagementForm({
   selectedRole,
   roleData,
   errors,
-  onRoleChange,
   onRoleFieldChange,
-  className
+  className,
+  hasGlobalRole = true,
+  userRoles = [],
+  onRoleAssigned
 }: RoleManagementFormProps) {
   const currentRole = getRoleById(selectedRole)
+  const [isAssigningRole, setIsAssigningRole] = React.useState(false)
+  const { toast } = useToast()
+
+  const handleAssignGlobalRole = async (role: 'student' | 'teacher') => {
+    setIsAssigningRole(true)
+    try {
+      const response = await backend.assignGlobalRole(role)
+      if (response.ok) {
+        toast({
+          title: "Role Assigned",
+          description: response.data?.message || `Successfully assigned ${role} role`,
+        })
+        onRoleAssigned?.()
+      } else {
+        toast({
+          title: "Error",
+          description: response.error || "Failed to assign role",
+          variant: "destructive"
+        })
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to assign role. Please try again.",
+        variant: "destructive"
+      })
+    } finally {
+      setIsAssigningRole(false)
+    }
+  }
+
+  // Check which global roles the user currently has
+  const currentGlobalRoles = userRoles.filter(role => role.scope === 'global').map(role => role.role)
+  const hasStudentRole = currentGlobalRoles.includes('student')
+  const hasTeacherRole = currentGlobalRoles.includes('teacher')
+  
+  // Show assignment options if user doesn't have a particular global role
+  const showStudentOption = !hasStudentRole
+  const showTeacherOption = !hasTeacherRole
+  const showGlobalRoleSection = showStudentOption || showTeacherOption
 
   return (
     <div className={cn("space-y-6", className)}>
-      {/* Role Selection */}
-      <div className="space-y-2">
-        <Label htmlFor="role">Select Your Role *</Label>
-        <Select value={selectedRole} onValueChange={onRoleChange}>
-          <SelectTrigger className={cn(errors.role && "border-destructive")}>
-            <SelectValue placeholder="Choose your role" />
-          </SelectTrigger>
-          <SelectContent>
-            {ROLES.map((role) => (
-              <SelectItem key={role.id} value={role.id}>
-                <div className="flex items-center gap-2">
-                  <role.icon className="h-4 w-4" />
-                  {role.title}
-                </div>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {errors.role && (
-          <p className="text-sm text-destructive">{errors.role}</p>
-        )}
-      </div>
+      {/* Global Role Assignment Section */}
+      {showGlobalRoleSection && (
+        <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <h4 className="font-medium text-blue-900 mb-2">Global Role Options</h4>
+          <p className="text-sm text-blue-700 mb-4">
+            {!hasGlobalRole 
+              ? "You don't have a global role yet. Choose to become a global student or teacher to access platform features."
+              : "You can add additional global roles to expand your platform access."
+            }
+          </p>
+          <div className="flex gap-2">
+            {showStudentOption && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => handleAssignGlobalRole('student')}
+                disabled={isAssigningRole}
+                className="border-blue-300 text-blue-700 hover:bg-blue-100"
+              >
+                {hasGlobalRole ? 'Add Student Role' : 'Become Student'}
+              </Button>
+            )}
+            {showTeacherOption && (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => handleAssignGlobalRole('teacher')}
+                disabled={isAssigningRole}
+                className="border-blue-300 text-blue-700 hover:bg-blue-100"
+              >
+                {hasGlobalRole ? 'Add Teacher Role' : 'Become Teacher'}
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Role Description */}
       {currentRole && (

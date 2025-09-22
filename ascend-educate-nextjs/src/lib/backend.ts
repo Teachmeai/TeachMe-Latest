@@ -116,6 +116,13 @@ class BackendClient {
       body: JSON.stringify(payload),
     })
   }
+
+  async assignGlobalRole(role: 'student' | 'teacher'): Promise<BackendResponse<{ message: string; role: string }>> {
+    return this.request<{ message: string; role: string }>('/auth/assign-global-role', {
+      method: 'POST',
+      body: JSON.stringify({ role }),
+    })
+  }
 }
 
 export const backend = new BackendClient()

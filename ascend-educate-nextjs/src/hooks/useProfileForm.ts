@@ -6,6 +6,7 @@ import { backend } from '../lib/backend'
 interface UseProfileFormProps {
   initialUser: UserProfile
   onProfileUpdate: (profile: UserProfile) => void
+  activeRole?: string
   initialProfile?: {
     full_name?: string
     avatar_url?: string
@@ -23,7 +24,7 @@ interface UseProfileFormProps {
   }
 }
 
-export const useProfileForm = ({ initialUser, onProfileUpdate, initialProfile }: UseProfileFormProps) => {
+export const useProfileForm = ({ initialUser, onProfileUpdate, activeRole, initialProfile }: UseProfileFormProps) => {
   const [isEditing, setIsEditing] = useState(false)
   const [formData, setFormData] = useState<FormData>({
     name: initialUser.name,
@@ -41,10 +42,17 @@ export const useProfileForm = ({ initialUser, onProfileUpdate, initialProfile }:
     github: initialUser.socialMedia?.github || '',
     website: initialUser.socialMedia?.website || ''
   })
-  const [selectedRole, setSelectedRole] = useState(initialUser.role)
+  const [selectedRole, setSelectedRole] = useState(activeRole || initialUser.role)
   const [roleData, setRoleData] = useState<Record<string, string>>(initialUser.roleData || {})
   const [basicErrors, setBasicErrors] = useState<ValidationErrors>({})
   const [roleErrors, setRoleErrors] = useState<ValidationErrors>({})
+
+  // Update selectedRole when activeRole changes from session
+  useEffect(() => {
+    if (activeRole && activeRole !== selectedRole) {
+      setSelectedRole(activeRole)
+    }
+  }, [activeRole, selectedRole])
 
   // Prefill form from backend profile when available
   useEffect(() => {
@@ -91,11 +99,11 @@ export const useProfileForm = ({ initialUser, onProfileUpdate, initialProfile }:
       github: initialUser.socialMedia?.github || '',
       website: initialUser.socialMedia?.website || ''
     })
-    setSelectedRole(initialUser.role)
+    setSelectedRole(activeRole || initialUser.role)
     setRoleData(initialUser.roleData || {})
     setBasicErrors({})
     setRoleErrors({})
-  }, [initialUser])
+  }, [initialUser, activeRole])
 
   const handleSaveBasic = useCallback(async () => {
     const validationErrors = validateBasicFields(formData)
@@ -175,13 +183,6 @@ export const useProfileForm = ({ initialUser, onProfileUpdate, initialProfile }:
     }
   }, [roleErrors])
 
-  const handleRoleChange = useCallback((roleId: string) => {
-    setSelectedRole(roleId)
-    setRoleData({}) // Reset role data when role changes
-    if (roleErrors.role) {
-      setRoleErrors(prev => ({ ...prev, role: '' }))
-    }
-  }, [roleErrors])
 
   return {
     isEditing,
@@ -196,7 +197,6 @@ export const useProfileForm = ({ initialUser, onProfileUpdate, initialProfile }:
     handleSaveBasic,
     handleSaveRole,
     handleFieldChange,
-    handleRoleFieldChange,
-    handleRoleChange
+    handleRoleFieldChange
   }
 }

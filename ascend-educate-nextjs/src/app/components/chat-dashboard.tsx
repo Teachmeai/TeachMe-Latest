@@ -79,9 +79,10 @@ interface ChatDashboardProps {
   onProfileUpdate?: (profile: UserProfile) => void
   session: UserSession | null
   onSwitchRole: (role: string, orgId?: string) => Promise<boolean>
+  onRefreshSession?: () => Promise<void>
 }
 
-export function ChatDashboard({ user, onLogout, onSendMessage, onProfileUpdate, session, onSwitchRole }: ChatDashboardProps) {
+export function ChatDashboard({ user, onLogout, onSendMessage, onProfileUpdate, session, onSwitchRole, onRefreshSession }: ChatDashboardProps) {
   const isMobile = useIsMobile()
   const [sidebarOpen, setSidebarOpen] = React.useState(!isMobile) // Default to closed on mobile
   const [sidebarAnimating, setSidebarAnimating] = React.useState(false)
@@ -571,6 +572,7 @@ export function ChatDashboard({ user, onLogout, onSendMessage, onProfileUpdate, 
               activeOrgId={session?.roles.find(r => r.scope === 'org' && r.role === userProfile.role)?.org_id}
               onSwitchRole={handleRoleSwitch}
               onProfileUpdate={handleProfileUpdate}
+              onRefreshSession={onRefreshSession}
               onClose={() => setShowProfileManagement(false)}
             />
           ) : !userProfile.isProfileComplete ? (

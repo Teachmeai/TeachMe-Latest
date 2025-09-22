@@ -27,7 +27,7 @@ interface UserProfile {
 }
 
 export default function HomePage() {
-  const { user, session, loading, logout, switchRole } = useAuth()
+  const { user, session, loading, logout, switchRole, refreshSession } = useAuth()
   const isHydrated = useHydration()
   const { toast } = useToast()
   const [sessionGrace, setSessionGrace] = React.useState(false)
@@ -141,6 +141,7 @@ export default function HomePage() {
           onProfileUpdate={handleProfileUpdate}
           session={session}
           onSwitchRole={switchRole}
+          onRefreshSession={refreshSession}
         />
         <DebugInfo auth={{ user, session, logout }} />
       </>
