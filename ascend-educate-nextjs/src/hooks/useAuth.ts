@@ -210,6 +210,16 @@ export function useAuth() {
       const response = await backend.getMe(deviceId)
       if (response.ok && response.data) {
         const sessionData = response.data
+        // Persist token2 for agent integrations
+        try {
+          if (typeof window !== 'undefined') {
+            if (sessionData.token2) {
+              window.localStorage.setItem('token2', sessionData.token2)
+            } else {
+              window.localStorage.removeItem('token2')
+            }
+          }
+        } catch {}
         setSession(sessionData)
         setupSessionRefresh(sessionData)
         console.log('Session fetched successfully')
@@ -301,6 +311,7 @@ export function useAuth() {
       setUser(null)
       setSession(null)
       setLoading(false)
+      try { if (typeof window !== 'undefined') window.localStorage.removeItem('token2') } catch {}
       
       console.log('Logout completed successfully')
     } catch (error) {

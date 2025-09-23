@@ -1,11 +1,13 @@
 from fastapi import APIRouter, Depends, Header, HTTPException
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from pydantic import BaseModel
+import jwt
 
 from middleware.auth_middleware import get_user_id
 from core.supabase import get_supabase_admin
 from service.session_service import get_session, set_session, delete_session
 from service.user_service import build_session_payload, set_profile_active_role
+from core.config import config
 
 def log_auth_operation(operation: str, user_id: str, additional_info: str = "", data: dict = None):
     """Log authentication operations with detailed information"""
@@ -70,6 +72,29 @@ async def me(user_id: str = Depends(get_user_id), x_device_id: str | None = Head
         session["profile"] = profile_data
     except Exception:
         # do not fail /me if profile fetch fails
+        pass
+
+    # Generate short-lived token2 with user_id and active_role
+    try:
+        secret = config.jwt.SECRET
+        algorithm = config.jwt.ALGORITHM or "HS256"
+        if secret:
+            now = datetime.now(timezone.utc)
+            payload = {
+                "sub": user_id,
+                "active_role": session.get("active_role"),
+                "iat": int(now.timestamp()),
+                "exp": int((now + timedelta(minutes=5)).timestamp()),
+                "aud": "agent",
+                "iss": "teachme-backend"
+            }
+            token2 = jwt.encode(payload, secret, algorithm=algorithm)
+            session["token2"] = token2
+        else:
+            # If no secret configured, omit token2 silently
+            pass
+    except Exception:
+        # Do not break /me on token generation errors
         pass
 
     return session

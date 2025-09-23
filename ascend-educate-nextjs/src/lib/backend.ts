@@ -15,6 +15,7 @@ export interface UserSession {
   active_role: string
   device_id?: string
   exp?: number
+  token2?: string
 }
 
 export interface BackendResponse<T> {
