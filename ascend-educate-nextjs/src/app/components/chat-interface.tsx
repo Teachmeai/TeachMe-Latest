@@ -32,14 +32,7 @@ export function ChatInterface({
   const [files, setFiles] = React.useState<FileAttachment[]>([])
   
   // Local messages state (user and AI)
-  const [wsMessages, setWsMessages] = React.useState<Array<{ id: string; type: "user" | "ai"; message: string; timestamp: string; files?: FileAttachment[] }>>([
-    {
-      id: `${Date.now()}-welcome`,
-      type: "ai",
-      message: "Connected to TeachMe AI Chat (HTTP). Send me a message to start chatting!",
-      timestamp: new Date().toISOString(),
-    },
-  ])
+  const [wsMessages, setWsMessages] = React.useState<Array<{ id: string; type: "user" | "ai"; message: string; timestamp: string; files?: FileAttachment[] }>>([])
   const [sending, setSending] = React.useState(false)
 
   const fileInputRef = React.useRef<HTMLInputElement>(null)
@@ -195,14 +188,7 @@ export function ChatInterface({
         </div>
       )}
 
-      {/* Connection Status (HTTP mode) */}
-      <div className="px-3 sm:px-4 py-2">
-        <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <span>Mode: HTTP</span>
-          </div>
-        </div>
-      </div>
+      {/* Connection Status removed for HTTP mode */}
 
       {/* Input Area */}
       <div className="chat-input-container p-3 sm:p-4 flex-shrink-0">
