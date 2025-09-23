@@ -77,12 +77,20 @@ export function ChatInterface({
 
     try {
       const token2 = typeof window !== 'undefined' ? window.localStorage.getItem('token2') : null
-      const resp = await fetch('http://localhost:5000/chat', {
+      const resp = await fetch('http://localhost:8002/agents/super-admin/chat', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(token2 ? { Authorization: `Bearer ${token2}` } : {}),
         },
-        body: JSON.stringify({ token: token2, message: text })
+        body: JSON.stringify({
+          message: text,
+          session_id: 'default',
+          stream: false,
+          temperature: 0.7,
+          max_tokens: 1,
+          metadata: { }
+        }),
       })
       if (!resp.ok) {
         const errText = await resp.text()
