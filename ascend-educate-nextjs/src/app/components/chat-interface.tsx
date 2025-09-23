@@ -1,20 +1,14 @@
 "use client"
 
 import * as React from "react"
-import { Send, Paperclip, X, File, Wifi, WifiOff } from "lucide-react"
+import { Send, Paperclip, X, File } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
-import { useWebSocket, ChatMessage } from "../../hooks/useWebSocket"
+// HTTP mode: no WebSocket
 
-interface Message {
-  id: string
-  type: "user" | "ai"
-  content: string
-  timestamp: string // ISO string for serialization
-  files?: FileAttachment[]
-}
+// Note: message shape is defined inline where used to keep types minimal
 
 interface FileAttachment {
   id: string
@@ -37,16 +31,16 @@ export function ChatInterface({
   const [message, setMessage] = React.useState("")
   const [files, setFiles] = React.useState<FileAttachment[]>([])
   
-  // Use WebSocket hook
-  const { 
-    isConnected, 
-    isConnecting, 
-    error, 
-    messages: wsMessages, 
-    sendMessage, 
-    connect, 
-    disconnect 
-  } = useWebSocket()
+  // Local messages state (user and AI)
+  const [wsMessages, setWsMessages] = React.useState<Array<{ id: string; type: "user" | "ai"; message: string; timestamp: string; files?: FileAttachment[] }>>([
+    {
+      id: `${Date.now()}-welcome`,
+      type: "ai",
+      message: "Connected to TeachMe AI Chat (HTTP). Send me a message to start chatting!",
+      timestamp: new Date().toISOString(),
+    },
+  ])
+  const [sending, setSending] = React.useState(false)
 
   const fileInputRef = React.useRef<HTMLInputElement>(null)
   const scrollAreaRef = React.useRef<HTMLDivElement>(null)
@@ -73,16 +67,54 @@ export function ChatInterface({
     setFiles(prev => prev.filter(file => file.id !== fileId))
   }
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!message.trim() && files.length === 0) return
+    const text = message.trim()
+    const userMsg = {
+      id: `${Date.now()}-${Math.random()}`,
+      type: "user" as const,
+      message: text,
+      timestamp: new Date().toISOString(),
+      files: files.length ? files : undefined,
+    }
+    setWsMessages(prev => [...prev, userMsg])
+    setMessage("")
+    setFiles([])
+    setSending(true)
 
-    // Send message via WebSocket
-    const success = sendMessage(message)
-    
-    if (success) {
+    try {
+      const token2 = typeof window !== 'undefined' ? window.localStorage.getItem('token2') : null
+      const resp = await fetch('http://localhost:5000/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ token: token2, message: text })
+      })
+      if (!resp.ok) {
+        const errText = await resp.text()
+        throw new Error(errText || `HTTP ${resp.status}`)
+      }
+      const data = await resp.json().catch(() => ({}))
+      const aiText = data?.message || data?.reply || data?.response || 'Hello World! I am responding over HTTP.'
+      const aiMsg = {
+        id: `${Date.now()}-${Math.random()}`,
+        type: "ai" as const,
+        message: aiText,
+        timestamp: new Date().toISOString(),
+      }
+      setWsMessages(prev => [...prev, aiMsg])
       onSendMessage?.()
-      setMessage("")
-      setFiles([])
+    } catch (e: any) {
+      const aiMsg = {
+        id: `${Date.now()}-${Math.random()}`,
+        type: "ai" as const,
+        message: `Request failed: ${e?.message || 'Unknown error'}`,
+        timestamp: new Date().toISOString(),
+      }
+      setWsMessages(prev => [...prev, aiMsg])
+    } finally {
+      setSending(false)
     }
   }
 
@@ -163,38 +195,12 @@ export function ChatInterface({
         </div>
       )}
 
-      {/* Connection Status */}
+      {/* Connection Status (HTTP mode) */}
       <div className="px-3 sm:px-4 py-2">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            {isConnected ? (
-              <>
-                <Wifi className="h-3 w-3 text-green-500" />
-                <span>Connected</span>
-              </>
-            ) : isConnecting ? (
-              <>
-                <div className="h-3 w-3 rounded-full bg-yellow-500 animate-pulse" />
-                <span>Connecting...</span>
-              </>
-            ) : (
-              <>
-                <WifiOff className="h-3 w-3 text-red-500" />
-                <span>Disconnected</span>
-                {error && <span className="text-red-500">({error})</span>}
-              </>
-            )}
+            <span>Mode: HTTP</span>
           </div>
-          {!isConnected && !isConnecting && (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={connect}
-              className="text-xs h-6 px-2"
-            >
-              Reconnect
-            </Button>
-          )}
         </div>
       </div>
 
@@ -233,7 +239,7 @@ export function ChatInterface({
             variant="default"
             size="icon"
             onClick={handleSend}
-            disabled={(!message.trim() && files.length === 0) || !isConnected}
+            disabled={(!message.trim() && files.length === 0) || sending}
             className="chat-send-button h-10 w-10 sm:h-12 sm:w-12 flex-shrink-0"
           >
             <Send className="h-4 w-4" />

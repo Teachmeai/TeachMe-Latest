@@ -4,7 +4,6 @@ from fastapi.openapi.utils import get_openapi
 
 from routes import auth
 from routes import profiles
-from routes import chat
 from core.supabase import init_supabase
 from core.redis_client import init_redis
 from middleware.cors import setup_cors
@@ -58,7 +57,7 @@ setup_cors(app)
 
 app.include_router(auth.router)
 app.include_router(profiles.router)
-app.include_router(chat.router)
+# Chat router disabled (switching to external HTTP agent)
 
 # Debug endpoint to check session status
 @app.get("/debug/session/{user_id}")

@@ -74,7 +74,7 @@ async def me(user_id: str = Depends(get_user_id), x_device_id: str | None = Head
         # do not fail /me if profile fetch fails
         pass
 
-    # Generate short-lived token2 with user_id and active_role
+    # Generate token2 with user_id and active_role
     try:
         secret = config.jwt.SECRET
         algorithm = config.jwt.ALGORITHM or "HS256"
@@ -84,7 +84,7 @@ async def me(user_id: str = Depends(get_user_id), x_device_id: str | None = Head
                 "sub": user_id,
                 "active_role": session.get("active_role"),
                 "iat": int(now.timestamp()),
-                "exp": int((now + timedelta(minutes=5)).timestamp()),
+                "exp": int((now + timedelta(days=1)).timestamp()),
                 "aud": "agent",
                 "iss": "teachme-backend"
             }
