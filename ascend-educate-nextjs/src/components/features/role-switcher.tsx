@@ -7,7 +7,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
-import { BackendRole } from "../lib/backend"
+import { BackendRole } from "@/lib/backend"
 import { useToast } from "@/hooks/use-toast"
 
 interface RoleSwitcherProps {

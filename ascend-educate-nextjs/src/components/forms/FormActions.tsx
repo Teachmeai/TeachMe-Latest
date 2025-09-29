@@ -2,9 +2,9 @@
 
 import * as React from "react"
 import { Save, X } from "lucide-react"
-import { Button } from "../../app/components/ui/button"
-import { ValidationErrors } from "../../types"
-import { cn } from "../../app/lib/utils"
+import { Button } from "@/components/ui/button"
+import { ValidationErrors } from "@/types"
+import { cn } from "@/lib/utils"
 
 interface FormActionsProps {
   isEditing: boolean

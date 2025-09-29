@@ -24,7 +24,7 @@ export interface Role {
   id: string
   title: string
   description: string
-  icon: any // Lucide icon component
+  icon: React.ComponentType<React.SVGProps<SVGSVGElement>> // Lucide icon component
   color: string
   fields: RoleField[]
 }
@@ -76,7 +76,7 @@ export interface ApiResponse<T> {
 export interface ApiError {
   message: string
   code: string
-  details?: Record<string, any>
+  details?: Record<string, unknown>
 }
 
 // Form validation types

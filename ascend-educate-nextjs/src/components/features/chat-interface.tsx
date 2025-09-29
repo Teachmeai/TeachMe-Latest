@@ -274,11 +274,11 @@ export function ChatInterface({
         msg.isLoading ? aiMsg : msg
       ))
       onSendMessage?.()
-    } catch (e: any) {
+    } catch (e: unknown) {
       const aiMsg = {
         id: `${Date.now()}-${Math.random()}`,
         type: "ai" as const,
-        message: `Request failed: ${e?.message || 'Unknown error'}`,
+        message: `Request failed: ${e instanceof Error ? e.message : 'Unknown error'}`,
         timestamp: new Date().toISOString(),
         isLoading: false
       }

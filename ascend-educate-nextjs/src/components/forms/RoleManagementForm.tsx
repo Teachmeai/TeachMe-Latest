@@ -1,16 +1,16 @@
 "use client"
 
 import * as React from "react"
-import { Input } from "../../app/components/ui/input"
-import { Label } from "../../app/components/ui/label"
-import { Textarea } from "../../app/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../app/components/ui/select"
-import { Button } from "../../app/components/ui/button"
-import { ROLES, getRoleById } from "../../config/roles"
-import { ValidationErrors } from "../../types"
-import { cn } from "../../app/lib/utils"
-import { backend } from "../../lib/backend"
-import { useToast } from "../../app/hooks/use-toast"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Button } from "@/components/ui/button"
+import { ROLES, getRoleById } from "@/config/roles"
+import { ValidationErrors } from "@/types"
+import { cn } from "@/lib/utils"
+import { backend } from "@/lib/backend"
+import { useToast } from "@/hooks/use-toast"
 
 interface RoleManagementFormProps {
   selectedRole: string

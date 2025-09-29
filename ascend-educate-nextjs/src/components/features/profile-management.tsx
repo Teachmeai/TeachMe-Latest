@@ -7,16 +7,17 @@ import { GlassCard } from "@/components/ui/glass-card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 // lightweight props; avoid external type deps
-import { useProfileForm } from "../../hooks/useProfileForm"
-import { BasicInfoForm } from "../../components/forms/BasicInfoForm"
-import { RoleManagementForm } from "../../components/forms/RoleManagementForm"
-import { FormActions } from "../../components/forms/FormActions"
+import { useProfileForm } from "@/hooks/useProfileForm"
+import { BasicInfoForm } from "@/components/forms/BasicInfoForm"
+import { RoleManagementForm } from "@/components/forms/RoleManagementForm"
+import { FormActions } from "@/components/forms/FormActions"
 // Removed ProfileCompletion import - progress bar functionality removed
-import { getRoleById } from "../../config/roles"
+import { getRoleById } from "@/config/roles"
 import { cn } from "@/lib/utils"
-import { RoleSwitcher } from "../../components/role-switcher"
+import { RoleSwitcher } from "@/components/features/role-switcher"
 import { useEffect, useState } from "react"
-import { backend } from "../../lib/backend"
+import { backend } from "@/lib/backend"
+import type { UserProfile } from "@/types"
 
 export function ProfileManagement({ 
   user, 
@@ -29,17 +30,17 @@ export function ProfileManagement({
   onSwitchRole,
   onRefreshSession
 }: {
-  user: any
-  onProfileUpdate?: (u: any) => void
+  user: UserProfile
+  onProfileUpdate?: (u: UserProfile) => void
   onClose?: () => void
   className?: string
   roles?: Array<{ scope: 'global' | 'org'; role: string; org_id?: string; org_name?: string }>
   activeRole?: string
   activeOrgId?: string
-  onSwitchRole?: (role: string, orgId?: string) => Promise<boolean> | void
+  onSwitchRole?: (role: string, orgId?: string) => Promise<boolean>
   onRefreshSession?: () => Promise<void>
 }) {
-  const [profile, setProfile] = useState<any | null>(null)
+  const [profile, setProfile] = useState<UserProfile | null>(null)
 
   useEffect(() => {
     let mounted = true
@@ -221,7 +222,7 @@ export function ProfileManagement({
             const roleName = (activeRole || user.role || "").toLowerCase()
             const data = user.roleData || {}
 
-            const asPairs = (pairs: Array<[string, any]>) => (
+            const asPairs = (pairs: Array<[string, string]>) => (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
                 {pairs.map(([label, value]) => (
                   <div key={label}>
@@ -291,8 +292,8 @@ export function ProfileManagement({
               <RoleSwitcher
                 roles={roles}
                 activeRole={activeRole || user.role}
-                activeOrgId={activeOrgId}
                 onRoleSwitch={onSwitchRole}
+                activeOrgId={activeOrgId}
               />
             </div>
           )}
@@ -306,7 +307,7 @@ export function ProfileManagement({
                     <span className="text-sm text-muted-foreground capitalize">
                       {key.replace(/([A-Z])/g, ' $1').trim()}:
                     </span>
-                    <span className="text-sm">{value}</span>
+                    <span className="text-sm">{String(value)}</span>
                   </div>
                 ))}
               </div>

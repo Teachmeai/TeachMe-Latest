@@ -1,6 +1,6 @@
 "use client"
 
-import * as React from "react"
+import { useState, useEffect, useRef } from "react"
 import { 
   MessageSquare, 
   Plus, 
@@ -16,10 +16,26 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Logo } from "@/components/ui/logo"
-import { ThemeToggle } from "@/components/theme-toggle"
-import { ChatInterface } from "@/components/chat-interface"
-import { ProfileManagement } from "@/components/profile-management"
-import { NotificationBell } from "@/components/notification-bell"
+import { ThemeToggle } from "@/components/features/theme-toggle"
+import { NotificationBell } from "@/components/features/notification-bell"
+import dynamic from 'next/dynamic'
+
+// Code splitting for heavy components
+const ChatInterface = dynamic(() => import("@/components/features/chat-interface").then(mod => ({ default: mod.ChatInterface })), {
+  loading: () => (
+    <div className="flex items-center justify-center h-32">
+      <div className="loading-spinner w-6 h-6"></div>
+    </div>
+  )
+})
+
+const ProfileManagement = dynamic(() => import("@/components/features/profile-management").then(mod => ({ default: mod.ProfileManagement })), {
+  loading: () => (
+    <div className="flex items-center justify-center h-32">
+      <div className="loading-spinner w-6 h-6"></div>
+    </div>
+  )
+})
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -41,28 +57,12 @@ import {
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
-import { useIsMobile } from "@/hooks/use-mobile"
 // removed quick role switcher; role management happens inside Profile
-import type { UserSession } from "../../lib/backend"
+import type { UserSession, BackendProfile } from "../../lib/backend"
 import { backend } from "../../lib/backend"
 
-interface UserProfile {
-  name: string
-  email: string
-  role: string
-  avatar?: string
-  institute?: string
-  phoneNumber?: string
-  socialMedia?: {
-    linkedin?: string
-    twitter?: string
-    github?: string
-    website?: string
-  }
-  roleData?: Record<string, string>
-  isProfileComplete?: boolean
-  profileCompletionPercentage?: number
-}
+import type { UserProfile } from "@/types"
+
 
 interface ChatSession {
   id: string
@@ -83,28 +83,38 @@ interface ChatDashboardProps {
 }
 
 export function ChatDashboard({ user, onLogout, onSendMessage, onProfileUpdate, session, onSwitchRole, onRefreshSession }: ChatDashboardProps) {
-  const isMobile = useIsMobile()
-  const [sidebarOpen, setSidebarOpen] = React.useState(!isMobile) // Default to closed on mobile
-  const [sidebarAnimating, setSidebarAnimating] = React.useState(false)
-  const [sidebarWidth, setSidebarWidth] = React.useState<number>(320)
-  const isResizingRef = React.useRef(false)
-  const [activeChat, setActiveChat] = React.useState<string | null>(null)
-  const [searchQuery, setSearchQuery] = React.useState("")
-  const [userProfile, setUserProfile] = React.useState<UserProfile>(user)
-  const [profileDialogOpen, setProfileDialogOpen] = React.useState(false)
+  const [isMobile, setIsMobile] = useState(false)
+
+  // Simple mobile detection
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768)
+    }
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
+  const [sidebarOpen, setSidebarOpen] = useState(!isMobile) // Default to closed on mobile
+  const [sidebarAnimating, setSidebarAnimating] = useState(false)
+  const [sidebarWidth, setSidebarWidth] = useState<number>(320)
+  const isResizingRef = useRef(false)
+  const [activeChat, setActiveChat] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [userProfile, setUserProfile] = useState<UserProfile>(user)
+  const [profileDialogOpen, setProfileDialogOpen] = useState(false)
   
-  const [showProfileManagement, setShowProfileManagement] = React.useState(false)
-  const fileInputRef = React.useRef<HTMLInputElement>(null)
+  const [showProfileManagement, setShowProfileManagement] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   
   // Session and role switching are provided by parent to avoid double auth hooks
 
   // Bootstrap profile from backend and gate chat until complete
-  React.useEffect(() => {
+  useEffect(() => {
     let mounted = true
     const loadProfile = async () => {
       const resp = await backend.getProfile()
       if (!mounted || !resp.ok || !resp.data) return
-      const p = resp.data as any
+      const p = resp.data as BackendProfile
       setUserProfile(prev => ({
         ...prev,
         name: p.full_name || prev.name,
@@ -129,7 +139,7 @@ export function ChatDashboard({ user, onLogout, onSendMessage, onProfileUpdate, 
   }, [])
 
   // Update sidebar state when mobile state changes
-  React.useEffect(() => {
+  useEffect(() => {
     if (isMobile) {
       setSidebarOpen(false)
     } else {
@@ -160,7 +170,7 @@ export function ChatDashboard({ user, onLogout, onSendMessage, onProfileUpdate, 
   }
   
   // Mock chat sessions
-  const [chatSessions, setChatSessions] = React.useState<ChatSession[]>([
+  const [chatSessions, setChatSessions] = useState<ChatSession[]>([
     {
       id: "1",
       title: "Getting Started with AI Learning",
@@ -245,7 +255,7 @@ export function ChatDashboard({ user, onLogout, onSendMessage, onProfileUpdate, 
     try {
       const resp = await backend.getProfile()
       if (resp.ok && resp.data) {
-        const p: any = resp.data
+        const p = resp.data as BackendProfile
         setUserProfile(prev => ({
           ...prev,
           name: p.full_name || prev.name,
