@@ -2,12 +2,12 @@
 
 import * as React from "react"
 import { useState, useMemo } from "react"
-import { Input } from "../../app/components/ui/input"
-import { Label } from "../../app/components/ui/label"
-import { Badge } from "../../app/components/ui/badge"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Badge } from "@/components/ui/badge"
 import { ProfilePictureUpload } from "./ProfilePictureUpload"
-import { FormData, ValidationErrors } from "../../types"
-import { cn } from "../../app/lib/utils"
+import { FormData, ValidationErrors } from "@/types"
+import { cn } from "@/lib/utils"
 
 interface BasicInfoFormProps {
   formData: FormData

@@ -2,9 +2,9 @@
 
 import * as React from "react"
 import { Camera } from "lucide-react"
-import { Button } from "../../app/components/ui/button"
-import { Avatar, AvatarFallback, AvatarImage } from "../../app/components/ui/avatar"
-import { cn } from "../../app/lib/utils"
+import { Button } from "@/components/ui/button"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { cn } from "@/lib/utils"
 
 interface ProfilePictureUploadProps {
   imageUrl?: string

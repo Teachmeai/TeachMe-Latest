@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { GlassCard } from "@/components/ui/glass-card"
 import { Logo } from "@/components/ui/logo"
-import { useHydration } from "@/hooks/use-hydration"
 import { cn } from "@/lib/utils"
 import { supabase } from "../../lib/supabase"
 import { useToast } from "@/hooks/use-toast"
@@ -22,7 +21,11 @@ export function LoginPage({ onLogin, className }: LoginPageProps) {
   const [loginMethod, setLoginMethod] = React.useState<"email" | "otp" | null>(null)
   const [otpCode, setOtpCode] = React.useState("")
   const [isLoading, setIsLoading] = React.useState(false)
-  const isHydrated = useHydration()
+  const [isHydrated, setIsHydrated] = React.useState(false)
+
+  React.useEffect(() => {
+    setIsHydrated(true)
+  }, [])
   const { toast } = useToast()
 
   const handleEmailLogin = async () => {

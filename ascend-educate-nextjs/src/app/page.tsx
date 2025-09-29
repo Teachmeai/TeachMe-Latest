@@ -1,40 +1,27 @@
 'use client'
 
-import * as React from "react"
-import { LoginPage } from "@/components/login-page"
-import { ChatDashboard } from "@/components/chat-dashboard"
+import { useState, useEffect } from "react"
+import { LoginPage } from "@/components/features/login-page"
+import { ChatDashboard } from "@/components/layout/chat-dashboard"
 import { useToast } from "@/hooks/use-toast"
-import { useHydration } from "@/hooks/use-hydration"
 import { useAuth } from "../hooks/useAuth"
-import { DebugInfo } from "../components/debug-info"
 
-interface UserProfile {
-  name: string
-  email: string
-  role: string
-  avatar?: string
-  institute?: string
-  phoneNumber?: string
-  socialMedia?: {
-    linkedin?: string
-    twitter?: string
-    github?: string
-    website?: string
-  }
-  roleData?: Record<string, string>
-  isProfileComplete?: boolean
-  profileCompletionPercentage?: number
-}
+import type { UserProfile } from "@/types"
 
 export default function HomePage() {
   const { user, session, loading, logout, switchRole, refreshSession } = useAuth()
-  const isHydrated = useHydration()
+  const [isHydrated, setIsHydrated] = useState(false)
   const { toast } = useToast()
-  const [sessionGrace, setSessionGrace] = React.useState(false)
+  const [sessionGrace, setSessionGrace] = useState(false)
+
+  // Simple hydration check
+  useEffect(() => {
+    setIsHydrated(true)
+  }, [])
 
   // Brief grace window after user becomes available to avoid flashing the
   // "Session Setup Required" fallback while /auth/me runs in background
-  React.useEffect(() => {
+  useEffect(() => {
     if (user && !session) {
       setSessionGrace(true)
       const t = setTimeout(() => setSessionGrace(false), 1500)
@@ -58,7 +45,7 @@ export default function HomePage() {
     profileCompletionPercentage: session.active_role ? 100 : 0
   } : null
 
-  const handleProfileUpdate = (profile: UserProfile) => {
+  const handleProfileUpdate = (_profile: UserProfile) => {
     toast({
       title: "Profile Updated",
       description: "Your profile has been updated successfully.",
@@ -107,12 +94,7 @@ export default function HomePage() {
 
   // Login State
   if (!user) {
-    return (
-      <>
-        <LoginPage onLogin={() => {}} />
-        <DebugInfo auth={{ user, session, logout }} />
-      </>
-    )
+    return <LoginPage onLogin={() => {}} />
   }
 
   // Loading state while fetching backend session
@@ -133,22 +115,18 @@ export default function HomePage() {
   // Dashboard State - ChatGPT/Grok Style
   if (userProfile) {
     return (
-      <>
-        <ChatDashboard 
-          user={userProfile} 
-          onLogout={handleLogout}
-          onSendMessage={handleChatMessage}
-          onProfileUpdate={handleProfileUpdate}
-          session={session}
-          onSwitchRole={switchRole}
-          onRefreshSession={refreshSession}
-        />
-        <DebugInfo auth={{ user, session, logout }} />
-      </>
+      <ChatDashboard 
+        user={userProfile} 
+        onLogout={handleLogout}
+        onSendMessage={handleChatMessage}
+        onProfileUpdate={handleProfileUpdate}
+        session={session}
+        onSwitchRole={switchRole}
+        onRefreshSession={refreshSession}
+      />
     )
   }
 
   // No explicit fallback; background retries will continue until session arrives
-
-  return <DebugInfo auth={{ user, session, logout }} />
+  return null
 }

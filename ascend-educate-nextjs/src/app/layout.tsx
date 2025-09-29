@@ -4,8 +4,9 @@ import './globals.css'
 import { Toaster } from "@/components/ui/toaster"
 import { Toaster as Sonner } from "@/components/ui/sonner"
 import { TooltipProvider } from "@/components/ui/tooltip"
-import { ThemeProvider } from "@/components/theme-provider"
-import { QueryProvider } from "@/components/query-provider"
+import { ThemeProvider } from "@/components/layout/theme-provider"
+import { QueryProvider } from "@/components/layout/query-provider"
+import { ErrorBoundary } from "@/components/ui/error-boundary"
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -37,7 +38,9 @@ export default function RootLayout({
             disableTransitionOnChange
           >
             <TooltipProvider>
-              {children}
+              <ErrorBoundary>
+                {children}
+              </ErrorBoundary>
               <Toaster />
               <Sonner />
             </TooltipProvider>
