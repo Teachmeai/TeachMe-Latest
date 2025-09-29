@@ -11,7 +11,8 @@
 
 Param(
   [string]$WslDistro = "Ubuntu",
-  [string]$OpaUrl = "https://openpolicyagent.org/downloads/latest/opa_windows_amd64.exe"
+  [string]$OpaUrl = "https://openpolicyagent.org/downloads/latest/opa_windows_amd64.exe",
+  [switch]$ConfigurePortProxy = $false
 )
 
 Set-StrictMode -Version Latest
@@ -59,6 +60,26 @@ Try {
   Write-Host "redis-cli: $pong"
 } Catch {
   Write-Host "Redis ping failed. Ensure redis-server is running in WSL." -ForegroundColor Yellow
+}
+
+# Optionally configure Windows portproxy 127.0.0.1:6379 -> <WSL_IP>:6379
+if ($ConfigurePortProxy) {
+  Write-Host "[Windows] Configuring localhost port proxy to WSL Redis (admin required)..." -ForegroundColor Cyan
+  try {
+    $ips = wsl -d $WslDistro -- hostname -I 2>$null
+    $wslIp = $null
+    if ($ips) { $wslIp = ($ips -split '\s+')[0].Trim() }
+    if ($wslIp) {
+      netsh interface portproxy delete v4tov4 listenaddress=127.0.0.1 listenport=6379 2>$null | Out-Null
+      netsh interface portproxy add v4tov4 listenaddress=127.0.0.1 listenport=6379 connectaddress=$wslIp connectport=6379 | Out-Null
+      netsh advfirewall firewall add rule name="Redis 6379" dir=in action=allow protocol=TCP localport=6379 2>$null | Out-Null
+      Write-Host "[Windows] Port proxy set: 127.0.0.1:6379 -> $wslIp:6379" -ForegroundColor Green
+    } else {
+      Write-Host "[Windows] Could not determine WSL IP. Skipping portproxy." -ForegroundColor Yellow
+    }
+  } catch {
+    Write-Host "[Windows] Portproxy configuration failed. Run PowerShell as Administrator." -ForegroundColor Yellow
+  }
 }
 
 # 4) Install OPA on Windows

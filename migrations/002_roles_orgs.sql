@@ -37,23 +37,12 @@ create table if not exists public.organization_memberships (
   created_at timestamp default now()
 );
 
--- 5) INVITES (org-scoped invites)
-create table if not exists public.invites (
-  id uuid primary key default gen_random_uuid(),
-  inviter uuid references auth.users(id) on delete cascade,
-  invitee_email text not null,
-  role text not null check (role in ('organization_admin','teacher','student')),
-  org_id uuid references public.organizations(id) on delete cascade,
-  status text default 'pending', -- pending, accepted, rejected
-  created_at timestamp default now()
-);
 
 -- 6) ENABLE ROW LEVEL SECURITY
 alter table public.profiles enable row level security;
 alter table public.organizations enable row level security;
 alter table public.user_roles enable row level security;
 alter table public.organization_memberships enable row level security;
-alter table public.invites enable row level security;
 
 -- 7) RLS POLICIES
 
@@ -93,11 +82,6 @@ create policy "Users can view their org memberships"
 on public.organization_memberships for select
 using (auth.uid() = user_id);
 
--- invites: invitee can view their invite
-drop policy if exists "Invitee can view invite" on public.invites;
-create policy "Invitee can view invite"
-on public.invites for select
-using (invitee_email = auth.jwt()->>'email');
 
 -- 8) TRIGGERS
 
