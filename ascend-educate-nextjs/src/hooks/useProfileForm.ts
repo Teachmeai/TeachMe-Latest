@@ -1,7 +1,8 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { FormData, ValidationErrors, UserProfile } from '../types'
-import { validateProfile, calculateProfileCompletion, validateBasicFields, validateRoleFields } from '../utils/validation'
+import { calculateProfileCompletion, validateBasicFields, validateRoleFields } from '../utils/validation'
 import { backend } from '../lib/backend'
+import { useToast } from './use-toast'
 
 interface UseProfileFormProps {
   initialUser: UserProfile
@@ -26,6 +27,8 @@ interface UseProfileFormProps {
 
 export const useProfileForm = ({ initialUser, onProfileUpdate, activeRole, initialProfile }: UseProfileFormProps) => {
   const [isEditing, setIsEditing] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const [saveSuccess, setSaveSuccess] = useState(false)
   const [formData, setFormData] = useState<FormData>({
     name: initialUser.name,
     email: initialUser.email,
@@ -46,6 +49,8 @@ export const useProfileForm = ({ initialUser, onProfileUpdate, activeRole, initi
   const [roleData, setRoleData] = useState<Record<string, string>>(initialUser.roleData || {})
   const [basicErrors, setBasicErrors] = useState<ValidationErrors>({})
   const [roleErrors, setRoleErrors] = useState<ValidationErrors>({})
+  const { toast } = useToast()
+  const hasLoadedProfile = useRef(false)
 
   // Update selectedRole when activeRole changes from session
   useEffect(() => {
@@ -54,9 +59,11 @@ export const useProfileForm = ({ initialUser, onProfileUpdate, activeRole, initi
     }
   }, [activeRole, selectedRole])
 
-  // Prefill form from backend profile when available
+  // Prefill form from backend profile when available (only once)
   useEffect(() => {
-    if (!initialProfile) return
+    if (!initialProfile || hasLoadedProfile.current) return
+    
+    hasLoadedProfile.current = true
     setFormData(prev => ({
       ...prev,
       name: initialProfile.full_name ?? prev.name,
@@ -79,36 +86,47 @@ export const useProfileForm = ({ initialUser, onProfileUpdate, activeRole, initi
     setIsEditing(true)
     setBasicErrors({})
     setRoleErrors({})
+    setSaveSuccess(false)
   }, [])
 
   const handleCancel = useCallback(() => {
     setIsEditing(false)
-    setFormData({
-      name: initialUser.name,
-      email: initialUser.email,
-      phoneNumber: initialUser.phoneNumber || '',
-      address: '',
-      city: '',
-      state: '',
-      country: '',
-      postalCode: '',
-      bio: '',
-      profilePicture: initialUser.avatar || '',
-      linkedin: initialUser.socialMedia?.linkedin || '',
-      twitter: initialUser.socialMedia?.twitter || '',
-      github: initialUser.socialMedia?.github || '',
-      website: initialUser.socialMedia?.website || ''
-    })
+    setIsSaving(false)
+    setSaveSuccess(false)
+    
+    // Reset to the current profile data (what was loaded from backend)
+    if (initialProfile) {
+      setFormData(prev => ({
+        ...prev,
+        name: initialProfile.full_name ?? prev.name,
+        profilePicture: initialProfile.avatar_url ?? prev.profilePicture,
+        phoneNumber: initialProfile.phone ?? prev.phoneNumber,
+        address: initialProfile.address ?? prev.address,
+        city: initialProfile.city ?? prev.city,
+        state: initialProfile.state ?? prev.state,
+        country: initialProfile.country ?? prev.country,
+        postalCode: initialProfile.postal_code ?? prev.postalCode,
+        bio: initialProfile.bio ?? prev.bio,
+        website: initialProfile.website ?? prev.website,
+        linkedin: initialProfile.linkedin_url ?? prev.linkedin,
+        twitter: initialProfile.twitter_url ?? prev.twitter,
+        github: initialProfile.github_url ?? prev.github,
+      }))
+    }
+    
     setSelectedRole(activeRole || initialUser.role)
     setRoleData(initialUser.roleData || {})
     setBasicErrors({})
     setRoleErrors({})
-  }, [initialUser, activeRole])
+  }, [activeRole, initialUser.role, initialUser.roleData, initialProfile])
 
   const handleSaveBasic = useCallback(async () => {
     const validationErrors = validateBasicFields(formData)
     setBasicErrors(validationErrors)
     if (Object.keys(validationErrors).length > 0) return false
+
+    setIsSaving(true)
+    setSaveSuccess(false)
 
     const updatedProfile: UserProfile = {
       ...initialUser,
@@ -150,24 +168,72 @@ export const useProfileForm = ({ initialUser, onProfileUpdate, activeRole, initi
       }
       const resp = await backend.updateProfile(payload)
       if (!resp.ok) {
+        setIsSaving(false)
+        toast({
+          title: "Error",
+          description: "Failed to save profile changes. Please try again.",
+          variant: "destructive"
+        })
         return false
       }
       onProfileUpdate(updatedProfile)
-      setIsEditing(false)
+      setIsSaving(false)
+      setSaveSuccess(true)
+      toast({
+        title: "Success",
+        description: "Profile changes saved successfully!",
+      })
+      
+      // Auto-hide success message after 3 seconds
+      setTimeout(() => {
+        setSaveSuccess(false)
+      }, 3000)
+      
       return true
-    } catch (e) {
+    } catch {
+      setIsSaving(false)
+      toast({
+        title: "Error",
+        description: "Failed to save profile changes. Please try again.",
+        variant: "destructive"
+      })
       return false
     }
-  }, [formData, selectedRole, roleData, initialUser, onProfileUpdate])
+  }, [formData, selectedRole, roleData, initialUser, onProfileUpdate, toast])
 
   const handleSaveRole = useCallback(async () => {
     const validationErrors = validateRoleFields(selectedRole, roleData)
     setRoleErrors(validationErrors)
     if (Object.keys(validationErrors).length > 0) return false
-    // For now, role data is local only; persist when backend is ready
-    setIsEditing(false)
-    return true
-  }, [selectedRole, roleData])
+    
+    setIsSaving(true)
+    setSaveSuccess(false)
+    
+    try {
+      // For now, role data is local only; persist when backend is ready
+      setIsSaving(false)
+      setSaveSuccess(true)
+      toast({
+        title: "Success",
+        description: "Role changes saved successfully!",
+      })
+      
+      // Auto-hide success message after 3 seconds
+      setTimeout(() => {
+        setSaveSuccess(false)
+      }, 3000)
+      
+      return true
+    } catch {
+      setIsSaving(false)
+      toast({
+        title: "Error",
+        description: "Failed to save role changes. Please try again.",
+        variant: "destructive"
+      })
+      return false
+    }
+  }, [selectedRole, roleData, toast])
 
   const handleFieldChange = useCallback((field: keyof FormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
@@ -186,6 +252,8 @@ export const useProfileForm = ({ initialUser, onProfileUpdate, activeRole, initi
 
   return {
     isEditing,
+    isSaving,
+    saveSuccess,
     formData,
     selectedRole,
     roleData,

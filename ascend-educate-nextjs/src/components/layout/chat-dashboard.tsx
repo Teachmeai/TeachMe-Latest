@@ -314,11 +314,18 @@ export function ChatDashboard({ user, onLogout, onSendMessage, onProfileUpdate, 
   }
 
   return (
-    <div className="h-screen flex bg-background relative">
+    <div className="h-screen flex bg-gradient-to-br from-background via-background to-muted/20 relative overflow-hidden">
+      {/* Enhanced Background Effects */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl animate-float" />
+        <div className="absolute bottom-1/4 left-1/4 w-80 h-80 bg-accent/5 rounded-full blur-3xl animate-float" style={{ animationDelay: '1s' }} />
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-primary/3 rounded-full blur-2xl animate-float" style={{ animationDelay: '2s' }} />
+      </div>
+      
       {/* Mobile Overlay */}
       {isMobile && sidebarOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm lg:hidden"
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-md lg:hidden animate-fade-in"
           onClick={() => setSidebarOpen(false)}
         />
       )}
@@ -327,25 +334,25 @@ export function ChatDashboard({ user, onLogout, onSendMessage, onProfileUpdate, 
       {sidebarOpen && (
         <div
           className={cn(
-            "sidebar-panel flex flex-col sidebar-transition",
+            "sidebar-panel flex flex-col sidebar-transition glass-card",
             isMobile
-              ? "fixed left-0 top-0 z-50 h-full w-80 transform transition-transform duration-300"
+              ? "fixed left-0 top-0 z-50 h-full w-80 transform transition-all duration-300 animate-slide-in-left"
               : "flex-shrink-0",
             sidebarAnimating ? "sidebar-slide-in" : ""
           )}
           style={!isMobile ? { width: `${sidebarWidth}px` } : undefined}
         >
           {/* Sidebar Header */}
-          <div className="p-4 border-b border-border">
-            <div className="flex items-center justify-between mb-4">
-              <Logo size="sm" />
+          <div className="p-6 border-b border-border/50 bg-gradient-to-r from-card/50 to-card/30">
+            <div className="flex items-center justify-between mb-6">
+              <Logo size="sm" className="animate-fade-in" />
               <div className="flex items-center gap-2">
                 <ThemeToggle />
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={handleSidebarToggle}
-                  className="hover:bg-primary/10 transition-colors"
+                  className="hover:bg-primary/10 transition-all duration-200 hover:scale-105"
                 >
                   <PanelLeftClose className="h-4 w-4" />
                 </Button>
@@ -355,37 +362,38 @@ export function ChatDashboard({ user, onLogout, onSendMessage, onProfileUpdate, 
             {/* New Chat Button */}
             <Button
               onClick={handleNewChat}
-              className="w-full bg-primary/10 hover:bg-primary/20 text-primary border-0"
-              variant="outline"
+              className="w-full glass-button hover-scale text-primary-foreground border-0 shadow-lg hover:shadow-xl"
+              variant="default"
             >
-              <Plus className="h-4 w-4 mr-2" />
+              <Plus className="h-4 w-4 mr-2 transition-transform duration-200 group-hover:rotate-90" />
               New Chat
             </Button>
           </div>
 
           {/* Search */}
-          <div className="p-4 border-b border-border">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <div className="p-6 border-b border-border/50">
+            <div className="relative group">
+              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground transition-colors duration-200 group-focus-within:text-primary" />
               <Input
                 placeholder="Search conversations..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 bg-muted/50 border-0"
+                className="pl-12 pr-4 py-3 bg-muted/30 border-0 rounded-xl focus:bg-muted/50 transition-all duration-200 focus:ring-2 focus:ring-primary/20"
               />
             </div>
           </div>
 
           {/* Chat History */}
           <ScrollArea className="flex-1">
-            <div className="p-2">
-              {filteredChats.map((chat) => (
+            <div className="p-4 space-y-2">
+              {filteredChats.map((chat, index) => (
                 <div
                   key={chat.id}
                   className={cn(
-                    "group flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-colors hover:bg-muted/50 relative",
-                    activeChat === chat.id && "bg-muted"
+                    "group flex items-start gap-4 p-4 rounded-xl cursor-pointer transition-all duration-200 hover:bg-muted/60 hover:scale-[1.02] relative glass-card hover-lift",
+                    activeChat === chat.id && "bg-primary/10 border border-primary/20 shadow-lg"
                   )}
+                  style={{ animationDelay: `${index * 0.1}s` }}
                   onClick={() => {
                     setActiveChat(chat.id)
                     // Close sidebar on mobile when chat is selected
@@ -394,45 +402,47 @@ export function ChatDashboard({ user, onLogout, onSendMessage, onProfileUpdate, 
                     }
                   }}
                 >
-                  <MessageSquare className="h-4 w-4 mt-1 text-muted-foreground flex-shrink-0" />
+                  <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors duration-200">
+                    <MessageSquare className="h-5 w-5 text-primary" />
+                  </div>
                   <div className="flex-1 min-w-0">
-                    <h4 className="text-sm font-medium truncate">{chat.title}</h4>
+                    <h4 className="text-heading-md truncate text-foreground group-hover:text-primary transition-colors duration-200">{chat.title}</h4>
                     {chat.lastMessage && (
-                      <p className="text-xs text-muted-foreground truncate mt-1">
+                      <p className="text-caption text-muted-foreground truncate mt-1 leading-relaxed">
                         {chat.lastMessage}
                       </p>
                     )}
-                    <p className="text-xs text-muted-foreground mt-1">
+                    <p className="text-caption text-muted-foreground/70 mt-2 font-medium">
                       {formatTime(chat.timestamp)}
                     </p>
                   </div>
                   
-                  {/* Chat Actions - Hidden on mobile for cleaner UI */}
+                  {/* Chat Actions - Enhanced */}
                   <div className={cn(
-                    "transition-opacity flex gap-1",
+                    "transition-all duration-200 flex gap-1",
                     isMobile ? "opacity-100" : "opacity-0 group-hover:opacity-100"
                   )}>
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-6 w-6 p-0 hover:bg-muted"
+                      className="h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary transition-all duration-200 hover:scale-110"
                       onClick={(e) => {
                         e.stopPropagation()
                         // Edit chat title functionality
                       }}
                     >
-                      <Edit className="h-3 w-3" />
+                      <Edit className="h-3.5 w-3.5" />
                     </Button>
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-6 w-6 p-0 hover:bg-destructive/20 hover:text-destructive"
+                      className="h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive transition-all duration-200 hover:scale-110"
                       onClick={(e) => {
                         e.stopPropagation()
                         handleDeleteChat(chat.id)
                       }}
                     >
-                      <Trash2 className="h-3 w-3" />
+                      <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   </div>
                 </div>
@@ -441,19 +451,19 @@ export function ChatDashboard({ user, onLogout, onSendMessage, onProfileUpdate, 
           </ScrollArea>
 
           {/* User Profile */}
-          <div className="p-4 border-t border-border">
+          <div className="p-6 border-t border-border/50 bg-gradient-to-r from-card/30 to-card/50">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="w-full justify-start p-2 h-auto">
-                  <Avatar className="h-8 w-8 mr-3">
+                <Button variant="ghost" className="w-full justify-start p-3 h-auto hover:bg-muted/50 transition-all duration-200 rounded-xl group">
+                  <Avatar className="h-10 w-10 mr-4 ring-2 ring-primary/20 group-hover:ring-primary/40 transition-all duration-200">
                     <AvatarImage src={userProfile.avatar} alt={userProfile.name} />
-                    <AvatarFallback className="bg-primary/10 text-primary text-sm">
+                    <AvatarFallback className="bg-gradient-primary text-primary-foreground text-sm font-semibold">
                       {getInitials(userProfile.name)}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 text-left">
-                    <p className="text-sm font-medium">{userProfile.name}</p>
-                    <p className="text-xs text-muted-foreground capitalize">{userProfile.role}</p>
+                    <p className="text-heading-md text-foreground group-hover:text-primary transition-colors duration-200">{userProfile.name}</p>
+                    <p className="text-caption text-muted-foreground capitalize font-medium">{userProfile.role}</p>
                   </div>
                 </Button>
               </DropdownMenuTrigger>
@@ -504,12 +514,12 @@ export function ChatDashboard({ user, onLogout, onSendMessage, onProfileUpdate, 
 
       {/* Main Content */}
       <div className={cn(
-        "flex flex-col flex-1 main-content-transition",
+        "flex flex-col flex-1 main-content-transition relative z-10 min-h-0",
         !sidebarOpen && "main-content-expand"
       )}>
         {/* Header */}
-        <div className="border-b border-border bg-card/50 backdrop-blur-sm">
-          <div className="flex items-center justify-between px-4 py-3">
+        <div className="border-b border-border/50 bg-gradient-to-r from-card/80 to-card/60 backdrop-blur-md shadow-sm">
+          <div className="flex items-center justify-between px-6 py-4">
             <div className="flex items-center gap-3">
               {/* Mobile Menu Button */}
               {isMobile && (
@@ -517,9 +527,9 @@ export function ChatDashboard({ user, onLogout, onSendMessage, onProfileUpdate, 
                   variant="ghost"
                   size="icon"
                   onClick={handleSidebarToggle}
-                  className="hover:bg-primary/10 transition-colors"
+                  className="hover:bg-primary/10 transition-all duration-200 hover:scale-105"
                 >
-                  <Menu className="h-4 w-4" />
+                  <Menu className="h-5 w-5" />
                 </Button>
               )}
               
@@ -529,13 +539,13 @@ export function ChatDashboard({ user, onLogout, onSendMessage, onProfileUpdate, 
                   variant="ghost"
                   size="icon"
                   onClick={handleSidebarToggle}
-                  className="hover:bg-primary/10 transition-colors"
+                  className="hover:bg-primary/10 transition-all duration-200 hover:scale-105"
                 >
-                  <PanelLeft className="h-4 w-4" />
+                  <PanelLeft className="h-5 w-5" />
                 </Button>
               )}
               
-              <h1 className="text-lg font-semibold truncate">
+              <h1 className="text-xl font-bold truncate bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
                 {activeChat ? 
                   chatSessions.find(c => c.id === activeChat)?.title || "TeachMe AI" 
                   : "TeachMe AI"
@@ -551,11 +561,11 @@ export function ChatDashboard({ user, onLogout, onSendMessage, onProfileUpdate, 
           
           {/* Profile Completion Banner */}
           {!userProfile.isProfileComplete && (
-            <div className="bg-orange-50 dark:bg-orange-950/20 border-t border-orange-200 dark:border-orange-800 px-4 py-3">
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse flex-shrink-0" />
-                  <p className="text-sm text-orange-800 dark:text-orange-200 truncate">
+            <div className="bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-950/30 dark:to-amber-950/30 border-t border-orange-200/50 dark:border-orange-800/50 px-6 py-4">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-4 min-w-0 flex-1">
+                  <div className="w-3 h-3 bg-gradient-to-r from-orange-500 to-amber-500 rounded-full animate-pulse-glow flex-shrink-0" />
+                  <p className="text-sm font-medium text-orange-800 dark:text-orange-200 truncate">
                     Complete your profile to start chatting with TeachMe AI
                   </p>
                 </div>
@@ -563,7 +573,7 @@ export function ChatDashboard({ user, onLogout, onSendMessage, onProfileUpdate, 
                   size="sm" 
                   variant="outline"
                   onClick={() => setShowProfileManagement(true)}
-                  className="text-orange-800 dark:text-orange-200 border-orange-300 dark:border-orange-700 hover:bg-orange-100 dark:hover:bg-orange-900/20 flex-shrink-0"
+                  className="text-orange-800 dark:text-orange-200 border-orange-300 dark:border-orange-700 hover:bg-orange-100 dark:hover:bg-orange-900/20 flex-shrink-0 hover-scale transition-all duration-200"
                 >
                   Complete Profile
                 </Button>
@@ -573,40 +583,50 @@ export function ChatDashboard({ user, onLogout, onSendMessage, onProfileUpdate, 
         </div>
 
         {/* Main Content */}
-        <div className="flex-1 bg-background h-screen overflow-hidden">
+        <div className="flex-1 bg-gradient-to-br from-background via-background to-muted/10 h-screen overflow-hidden relative">
           {showProfileManagement ? (
             <ProfileManagement
               user={userProfile}
               roles={session?.roles || []}
               activeRole={userProfile.role}
-              activeOrgId={session?.roles.find(r => r.scope === 'org' && r.role === userProfile.role)?.org_id}
               onSwitchRole={handleRoleSwitch}
               onProfileUpdate={handleProfileUpdate}
               onRefreshSession={onRefreshSession}
               onClose={() => setShowProfileManagement(false)}
             />
           ) : !userProfile.isProfileComplete ? (
-            <div className="h-full flex items-center justify-center p-4 sm:p-8">
-              <div className="text-center max-w-md w-full">
-                <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-orange-500 to-red-500 rounded-full mx-auto mb-4 sm:mb-6 flex items-center justify-center shadow-glow">
-                  <User className="h-8 w-8 sm:h-10 sm:w-10 text-white" />
+            <div className="h-full flex items-center justify-center p-4 sm:p-8 relative">
+              <div className="text-center max-w-lg w-full animate-fade-in">
+                <div className="w-20 h-20 sm:w-24 sm:h-24 bg-gradient-primary rounded-2xl mx-auto mb-6 sm:mb-8 flex items-center justify-center shadow-xl animate-bounce-in">
+                  <User className="h-10 w-10 sm:h-12 sm:w-12 text-primary-foreground" />
                 </div>
-                <h2 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4">Complete Your Profile</h2>
-                <p className="text-muted-foreground mb-4 sm:mb-6 text-sm sm:text-base">
+                <h2 className="text-2xl sm:text-3xl font-bold mb-4 sm:mb-6 bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
+                  Complete Your Profile
+                </h2>
+                <p className="text-muted-foreground mb-6 sm:mb-8 text-base sm:text-lg leading-relaxed">
                   You need to complete your profile setup before you can start chatting. 
                   This helps us personalize your TeachMe experience.
                 </p>
-                <div className="space-y-3">
+                <div className="space-y-4">
                   <Button 
                     onClick={() => setShowProfileManagement(true)}
-                    className="w-full bg-primary hover:bg-primary/90"
+                    className="w-full glass-button hover-scale text-primary-foreground shadow-lg hover:shadow-xl"
+                    size="lg"
                   >
-                    <User className="h-4 w-4 mr-2" />
+                    <User className="h-5 w-5 mr-2" />
                     Complete Profile Setup
                   </Button>
-                  <p className="text-xs text-muted-foreground">
-                    Profile completion: {userProfile.profileCompletionPercentage || 0}%
-                  </p>
+                  <div className="bg-muted/50 rounded-lg p-3">
+                    <p className="text-sm text-muted-foreground font-medium">
+                      Profile completion: {userProfile.profileCompletionPercentage || 0}%
+                    </p>
+                    <div className="w-full bg-muted-foreground/20 rounded-full h-2 mt-2">
+                      <div 
+                        className="bg-gradient-primary h-2 rounded-full transition-all duration-500"
+                        style={{ width: `${userProfile.profileCompletionPercentage || 0}%` }}
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -616,15 +636,23 @@ export function ChatDashboard({ user, onLogout, onSendMessage, onProfileUpdate, 
               placeholder={`Ask TeachMe AI anything about ${userProfile.role === "student" ? "learning" : userProfile.role === "teacher" ? "teaching" : "administration"}...`}
             />
           ) : (
-            <div className="h-full flex items-center justify-center p-4 sm:p-8">
-              <div className="text-center max-w-md w-full">
-                <MessageSquare className="h-12 w-12 sm:h-16 sm:w-16 mx-auto mb-3 sm:mb-4 text-muted-foreground/50" />
-                <h2 className="text-lg sm:text-xl font-semibold mb-2">Welcome to TeachMe AI</h2>
-                <p className="text-muted-foreground mb-4 sm:mb-6 text-sm sm:text-base">
+            <div className="h-full flex items-center justify-center p-4 sm:p-8 relative">
+              <div className="text-center max-w-lg w-full animate-fade-in">
+                <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-primary rounded-2xl mx-auto mb-6 sm:mb-8 flex items-center justify-center shadow-xl animate-float">
+                  <MessageSquare className="h-8 w-8 sm:h-10 sm:w-10 text-primary-foreground" />
+                </div>
+                <h2 className="text-display-lg sm:text-display-xl font-bold mb-4 sm:mb-6 bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
+                  Welcome to TeachMe AI
+                </h2>
+                <p className="text-body-lg text-muted-foreground mb-6 sm:mb-8 leading-relaxed">
                   Select a conversation from the sidebar or start a new chat to begin learning with AI.
                 </p>
-                <Button onClick={handleNewChat} className="bg-primary hover:bg-primary/90">
-                  <Plus className="h-4 w-4 mr-2" />
+                <Button 
+                  onClick={handleNewChat} 
+                  className="glass-button hover-scale text-primary-foreground shadow-lg hover:shadow-xl"
+                  size="lg"
+                >
+                  <Plus className="h-5 w-5 mr-2" />
                   Start New Chat
                 </Button>
               </div>

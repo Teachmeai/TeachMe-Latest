@@ -105,24 +105,6 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 
 type Toast = Omit<ToasterToast, "id">;
 
-function toast(_props: Toast) {
-  const id = genId();
-
-  const update = (_updateProps: ToasterToast) => {
-    // This will be handled by the context
-  };
-  
-  const dismiss = () => {
-    // This will be handled by the context
-  };
-
-  return {
-    id: id,
-    dismiss,
-    update,
-  };
-}
-
 function useToast() {
   const context = React.useContext(ToastContext);
   
@@ -130,10 +112,40 @@ function useToast() {
     // Fallback for when context is not available
     return {
       toasts: [],
-      toast,
+      toast: () => ({ id: '', dismiss: () => {}, update: () => {} }),
       dismiss: () => {},
     };
   }
+
+  const toast = (props: Toast) => {
+    const id = genId();
+    const toastData = { ...props, id };
+
+    context.dispatch({
+      type: "ADD_TOAST",
+      toast: toastData,
+    });
+
+    const update = (updateProps: ToasterToast) => {
+      context.dispatch({
+        type: "UPDATE_TOAST",
+        toast: { ...updateProps, id },
+      });
+    };
+    
+    const dismiss = () => {
+      context.dispatch({
+        type: "DISMISS_TOAST",
+        toastId: id,
+      });
+    };
+
+    return {
+      id: id,
+      dismiss,
+      update,
+    };
+  };
 
   return {
     ...context.state,
@@ -142,4 +154,4 @@ function useToast() {
   };
 }
 
-export { useToast, toast };
+export { useToast };

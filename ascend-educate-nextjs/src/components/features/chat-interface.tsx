@@ -41,12 +41,16 @@ function hasMarkdownFormatting(content: string): boolean {
   return markdownPatterns.some(pattern => pattern.test(content))
 }
 
-// Loading message component
+// Enhanced loading message component
 function LoadingMessage() {
   return (
-    <div className="flex items-center gap-3 text-sm text-muted-foreground py-2">
-      <Loader2 className="h-4 w-4 animate-spin text-primary" />
-      <span className="animate-pulse">AI is thinking...</span>
+    <div className="flex items-center gap-3 text-sm text-muted-foreground py-2 animate-fade-in">
+      <div className="loading-dots">
+        <div></div>
+        <div></div>
+        <div></div>
+      </div>
+      <span className="animate-pulse font-medium">AI is thinking...</span>
     </div>
   )
 }
@@ -301,9 +305,9 @@ export function ChatInterface({
   }
 
   return (
-    <div className={cn("flex flex-col h-screen overflow-hidden", className)}>
+    <div className={cn("flex flex-col h-full overflow-hidden", className)}>
       {/* Messages Area */}
-      <ScrollArea ref={scrollAreaRef} className="p-2 sm:p-4 scroll-area h-[34rem] ">
+      <ScrollArea ref={scrollAreaRef} className="flex-1 p-2 sm:p-4 scroll-area">
         <div className="space-y-4 sm:space-y-6 max-w-4xl mx-auto">
           {wsMessages.map((msg, index) => (
             <div
@@ -315,10 +319,10 @@ export function ChatInterface({
             >
               <div
                 className={cn(
-                  "max-w-[85%] sm:max-w-[80%] rounded-2xl px-3 py-2 sm:px-4 sm:py-3 shadow-sm transition-all duration-200 hover:shadow-md message-enter",
+                  "max-w-[85%] sm:max-w-[80%] rounded-2xl px-3 py-2 sm:px-4 sm:py-3 shadow-sm transition-all duration-300 hover:shadow-md message-enter",
                   msg.type === "user" 
-                    ? "chat-message-user" 
-                    : "chat-message-ai"
+                    ? "chat-message-user animate-fade-in-right" 
+                    : "chat-message-ai animate-fade-in-left"
                 )}
                 style={{ animationDelay: `${index * 0.1}s` }}
               >
@@ -381,52 +385,69 @@ export function ChatInterface({
 
       {/* Connection Status removed for HTTP mode */}
 
-      {/* Input Area */}
-      <div className="chat-input-container p-3 sm:p-4 flex-shrink-0">
-        <div className="flex items-end gap-2 sm:gap-3 max-w-4xl mx-auto">
-          <div className="flex-1 relative">
-            <Input
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              placeholder={sending ? "AI is responding..." : placeholder}
-              className="chat-input pr-12 h-10 sm:h-12 text-sm resize-none"
-              onKeyPress={(e) => e.key === "Enter" && !sending && handleSend()}
-              disabled={sending}
-            />
+      {/* Professional Input Area */}
+      <div className="chat-input-container flex-shrink-0 bg-gradient-to-r from-background/98 to-background/95 backdrop-blur-xl border-t border-border/20 shadow-2xl">
+        <div className="max-w-5xl mx-auto px-6 sm:px-8 py-8">
+          <div className="relative">
+            {/* Input Container with Professional Styling */}
+            <div className="relative group">
+              <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-accent/5 to-primary/5 rounded-3xl blur-sm group-hover:blur-md transition-all duration-300"></div>
+              <div className="relative bg-gradient-to-r from-card/80 to-card/60 backdrop-blur-xl rounded-3xl border border-border/30 shadow-xl group-hover:shadow-2xl transition-all duration-300 p-2">
+                <div className="flex items-center gap-2">
+                  {/* Main Input Field */}
+                  <div className="flex-1 relative">
+                    <Input
+                      value={message}
+                      onChange={(e) => setMessage(e.target.value)}
+                      placeholder={sending ? "AI is responding..." : placeholder}
+                      className="chat-input h-14 sm:h-16 text-base pr-20 pl-6 rounded-2xl border-0 bg-transparent focus:ring-0 focus:outline-none placeholder:text-muted-foreground/70 font-medium transition-all duration-200"
+                      onKeyPress={(e) => e.key === "Enter" && !sending && handleSend()}
+                      disabled={sending}
+                    />
+                    
+                    {/* Input Actions */}
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        multiple
+                        className="hidden"
+                        onChange={handleFileUpload}
+                        accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg,.mp3,.mp4"
+                      />
+                      
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={sending}
+                        className="h-10 w-10 hover:bg-primary/10 transition-all duration-200 hover:scale-110 disabled:opacity-50 rounded-xl border border-border/20 hover:border-primary/30"
+                      >
+                        <Paperclip className="h-4 w-4" />
+                      </Button>
+                      
+                      <Button
+                        variant="default"
+                        size="icon"
+                        onClick={handleSend}
+                        disabled={(!message.trim() && files.length === 0) || sending}
+                        className="chat-send-button h-10 w-10 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110 disabled:opacity-50 disabled:scale-100 border-0"
+                      >
+                        {sending ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Send className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            {/* Professional Accent Line */}
+            <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-24 h-1 bg-gradient-to-r from-transparent via-primary/60 to-transparent rounded-full"></div>
           </div>
-          
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            className="hidden"
-            onChange={handleFileUpload}
-            accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg,.mp3,.mp4"
-          />
-          
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={sending}
-            className="h-10 w-10 sm:h-12 sm:w-12 hover:bg-primary/10 transition-colors flex-shrink-0 disabled:opacity-50"
-          >
-            <Paperclip className="h-4 w-4" />
-          </Button>
-          
-          <Button
-            variant="default"
-            size="icon"
-            onClick={handleSend}
-            disabled={(!message.trim() && files.length === 0) || sending}
-            className="chat-send-button h-10 w-10 sm:h-12 sm:w-12 flex-shrink-0"
-          >
-            {sending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Send className="h-4 w-4" />
-            )}
-          </Button>
         </div>
       </div>
     </div>

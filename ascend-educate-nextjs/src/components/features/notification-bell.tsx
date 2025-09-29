@@ -20,7 +20,7 @@ export const addTestNotification = (addNotification: (notification: Omit<Notific
     {
       type: 'learning' as const,
       title: 'Study Streak!',
-      message: 'Congratulations! You\u2019ve completed 7 days in a row. Keep up the great work!',
+      message: 'Congratulations! You\'ve completed 7 days in a row. Keep up the great work!',
       actionUrl: '/achievements',
       actionText: 'View Achievements'
     },
@@ -162,8 +162,8 @@ function NotificationItem({ notification, onMarkAsRead, onRemove }: Notification
                 className="h-6 px-2 text-xs text-primary hover:bg-primary/10"
                 onClick={(e) => {
                   e.stopPropagation()
-                  // Handle navigation
-                  console.log('Navigate to:', notification.actionUrl)
+                  // Handle navigation - replace with your router
+                  window.location.href = notification.actionUrl
                 }}
               >
                 {notification.actionText}
@@ -197,21 +197,21 @@ export function NotificationBell() {
         <Button
           variant="ghost"
           size="icon"
-          className="relative h-10 w-10 hover:bg-primary/10 transition-colors"
+          className="relative h-10 w-10 hover:bg-primary/10 transition-all duration-300 hover:scale-110 active:scale-95"
         >
           {isMuted ? (
-            <BellOff className="h-5 w-5 text-muted-foreground" />
+            <BellOff className="h-5 w-5 text-muted-foreground transition-colors duration-200" />
           ) : (
-            <Bell className="h-5 w-5 text-muted-foreground hover:text-primary transition-colors" />
+            <Bell className={cn(
+              "h-5 w-5 text-muted-foreground hover:text-primary transition-all duration-200",
+              unreadCount > 0 && "animate-wiggle"
+            )} />
           )}
           
           {!isMuted && unreadCount > 0 && (
-            <Badge 
-              variant="destructive" 
-              className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs font-medium"
-            >
+            <div className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center bg-destructive text-destructive-foreground rounded-full text-xs font-bold shadow-lg border-2 border-background animate-notification-bounce">
               {unreadCount > 9 ? '9+' : unreadCount}
-            </Badge>
+            </div>
           )}
         </Button>
       </DropdownMenuTrigger>
@@ -299,8 +299,8 @@ export function NotificationBell() {
               size="sm"
               className="w-full text-xs text-muted-foreground hover:text-foreground"
               onClick={() => {
-                // Navigate to full notifications page
-                console.log('View all notifications')
+                // Navigate to full notifications page - replace with your router
+                window.location.href = '/notifications'
               }}
             >
               View all notifications

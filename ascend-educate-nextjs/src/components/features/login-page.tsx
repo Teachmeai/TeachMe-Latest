@@ -222,21 +222,26 @@ export function LoginPage({ onLogin, className }: LoginPageProps) {
   }
 
   return (
-    <div className={cn("min-h-screen flex items-center justify-center p-4 relative bg-gradient-to-br from-background via-background to-muted/30", className)}>
-      {/* Subtle Background Pattern */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(120,119,198,0.03),transparent_50%)]" />
+    <div className={cn("min-h-screen flex items-center justify-center p-4 relative bg-gradient-to-br from-background via-background to-muted/20", className)}>
+      {/* Enhanced Background Pattern */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(120,119,198,0.05),transparent_50%)]" />
       
-      {/* Minimal Background Effects */}
+      {/* Enhanced Background Effects */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 left-1/4 w-96 h-96 bg-accent/5 rounded-full blur-3xl" />
+        <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-primary/8 rounded-full blur-3xl animate-float" />
+        <div className="absolute bottom-1/4 left-1/4 w-80 h-80 bg-accent/8 rounded-full blur-3xl animate-float" style={{ animationDelay: '1s' }} />
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-primary/4 rounded-full blur-2xl animate-float" style={{ animationDelay: '2s' }} />
       </div>
 
-      <div className="relative z-10 w-full max-w-md">
-        <div className="text-center mb-8 animate-fade-in">
-          <Logo size="xl" className="justify-center mb-6" />
-          <h1 className="text-3xl font-bold mb-2">Welcome Back</h1>
-          <p className="text-muted-foreground">
+      <div className="relative z-10 w-full max-w-lg">
+        <div className="text-center mb-10 animate-fade-in">
+          <div className="mx-auto mb-8 animate-bounce-in">
+            <Logo size="xl" className="justify-center" />
+          </div>
+          <h1 className="text-4xl font-bold mb-4 text-foreground">
+            Welcome Back
+          </h1>
+          <p className="text-muted-foreground text-lg">
             Sign in to continue your learning journey
           </p>
         </div>
@@ -244,30 +249,32 @@ export function LoginPage({ onLogin, className }: LoginPageProps) {
         <GlassCard variant="interactive" size="lg" className="animate-scale-in">
           {loginMethod === "otp" ? (
             // OTP Verification Form
-            <div className="space-y-6">
+            <div className="space-y-8">
                <div className="text-center">
-                 <div className="w-16 h-16 bg-gradient-primary rounded-full mx-auto mb-4 flex items-center justify-center shadow-glow">
-                   <Mail className="h-8 w-8 text-primary-foreground" />
+                 <div className="w-20 h-20 bg-gradient-primary rounded-2xl mx-auto mb-6 flex items-center justify-center shadow-xl animate-bounce-in">
+                   <Mail className="h-10 w-10 text-primary-foreground" />
                  </div>
-                 <h3 className="text-xl font-semibold mb-2">Check Your Email</h3>
-                 <p className="text-sm text-muted-foreground">
-                   We&apos;ve sent a verification code to <strong>{email}</strong>
+                 <h3 className="text-2xl font-bold mb-4 bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
+                   Check Your Email
+                 </h3>
+                 <p className="text-base text-muted-foreground mb-2">
+                   We&apos;ve sent a verification code to <strong className="text-foreground">{email}</strong>
                  </p>
-                 <p className="text-xs text-muted-foreground mt-2">
+                 <p className="text-sm text-muted-foreground">
                    If you received a magic link instead, click it to sign in directly.
                  </p>
                </div>
 
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="otp">Verification Code</Label>
+              <div className="space-y-6">
+                <div className="space-y-3">
+                  <Label htmlFor="otp" className="text-base font-semibold">Verification Code</Label>
                   <Input
                     id="otp"
                     type="text"
                     placeholder="Enter 6-digit code"
                     value={otpCode}
                     onChange={(e) => setOtpCode(e.target.value)}
-                    className="text-center text-lg tracking-widest glass-card"
+                    className="text-center text-xl tracking-widest glass-card h-14 text-lg font-mono"
                     maxLength={6}
                   />
                 </div>
@@ -275,25 +282,25 @@ export function LoginPage({ onLogin, className }: LoginPageProps) {
                  <Button
                    onClick={handleOtpVerification}
                    disabled={otpCode.length !== 6 || isLoading}
-                   className="w-full hover-scale"
+                   className="w-full glass-button hover-scale text-primary-foreground shadow-lg hover:shadow-xl h-12 text-lg"
                    variant="default"
                  >
                    {isLoading ? "Verifying..." : "Verify & Continue"}
                  </Button>
 
-                 <div className="flex gap-2">
+                 <div className="flex gap-3">
                    <Button
                      onClick={handleResendOtp}
                      disabled={isLoading}
                      variant="outline"
-                     className="flex-1"
+                     className="flex-1 hover-scale h-11"
                    >
                      Resend Code
                    </Button>
                    <Button
                      onClick={() => setLoginMethod(null)}
                      variant="ghost"
-                     className="flex-1"
+                     className="flex-1 hover-scale h-11"
                    >
                      Back to login
                    </Button>
@@ -302,17 +309,17 @@ export function LoginPage({ onLogin, className }: LoginPageProps) {
             </div>
           ) : (
             // Login Form
-            <div className="space-y-6">
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email Address</Label>
+            <div className="space-y-8">
+              <div className="space-y-6">
+                <div className="space-y-3">
+                  <Label htmlFor="email" className="text-base font-semibold">Email Address</Label>
                   <Input
                     id="email"
                     type="email"
                     placeholder="Enter your email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="glass-card border-border"
+                    className="glass-card border-border h-12 text-base"
                     onKeyPress={(e) => e.key === "Enter" && handleEmailLogin()}
                   />
                 </div>
@@ -320,20 +327,20 @@ export function LoginPage({ onLogin, className }: LoginPageProps) {
                 <Button
                   onClick={handleEmailLogin}
                   disabled={!email.trim() || isLoading}
-                  className="w-full hover-scale"
+                  className="w-full glass-button hover-scale text-primary-foreground shadow-lg hover:shadow-xl h-12 text-lg"
                   variant="default"
                 >
-                  <Mail className="mr-2 h-4 w-4" />
+                  <Mail className="mr-2 h-5 w-5" />
                   {isLoading ? "Sending Code..." : "Send Verification Code"}
                 </Button>
               </div>
 
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t border-border" />
+                  <span className="w-full border-t border-border/50" />
                 </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background px-2 text-muted-foreground">
+                <div className="relative flex justify-center text-sm uppercase">
+                  <span className="bg-background px-4 text-muted-foreground font-medium">
                     Or continue with
                   </span>
                 </div>
@@ -343,22 +350,22 @@ export function LoginPage({ onLogin, className }: LoginPageProps) {
                 onClick={handleGoogleLogin}
                 disabled={isLoading}
                 variant="outline"
-                className="w-full hover-scale glass-card"
+                className="w-full hover-scale glass-card h-12 text-base border-border/50 hover:border-primary/50"
               >
-                <Chrome className="mr-2 h-4 w-4" />
+                <Chrome className="mr-3 h-5 w-5" />
                 {isLoading ? "Connecting..." : "Continue with Google"}
               </Button>
             </div>
           )}
         </GlassCard>
 
-        <div className="text-center mt-6 text-sm text-muted-foreground animate-fade-in">
+        <div className="text-center mt-8 text-sm text-muted-foreground animate-fade-in">
           By continuing, you agree to our{" "}
-          <a href="#" className="text-primary hover:underline">
+          <a href="#" className="text-primary hover:underline font-medium transition-colors duration-200">
             Terms of Service
           </a>{" "}
           and{" "}
-          <a href="#" className="text-primary hover:underline">
+          <a href="#" className="text-primary hover:underline font-medium transition-colors duration-200">
             Privacy Policy
           </a>
         </div>
