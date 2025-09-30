@@ -73,3 +73,61 @@ async def delete_session(user_id: str) -> None:
     await redis.delete(_session_key(user_id))
 
 
+# Thread Management Functions
+
+THREAD_TTL_SECONDS = 86400  # 24 hours
+
+def _thread_key(user_id: str, assistant_id: str) -> str:
+    """Generate Redis key for thread mapping"""
+    return f"thread:{user_id}:{assistant_id}"
+
+
+def log_thread_operation(operation: str, user_id: str, assistant_id: str = None, thread_id: str = None, additional_info: str = ""):
+    """Log thread operations"""
+    print(f"🧵 THREAD {operation.upper()}: user_id={user_id}")
+    if assistant_id:
+        print(f"   🤖 Assistant ID: {assistant_id}")
+    if thread_id:
+        print(f"   💬 Thread ID: {thread_id}")
+    if additional_info:
+        print(f"   ℹ️  {additional_info}")
+    print(f"   ⏰ Timestamp: {datetime.now(timezone.utc).isoformat()}")
+    print("   " + "="*50)
+
+
+async def store_thread_mapping(user_id: str, assistant_id: str, thread_id: str) -> None:
+    """
+    Store mapping of user + assistant to thread ID.
+    This allows users to continue existing conversations.
+    """
+    redis = get_redis()
+    key = _thread_key(user_id, assistant_id)
+    
+    log_thread_operation("STORE", user_id, assistant_id, thread_id, 
+                        "Storing thread mapping in Redis")
+    
+    await redis.set(key, thread_id, ex=THREAD_TTL_SECONDS)
+
+
+async def get_thread_for_assistant(user_id: str, assistant_id: str) -> Optional[str]:
+    """
+    Get existing thread ID for a user-assistant pair.
+    Returns thread_id if exists, None otherwise.
+    """
+    redis = get_redis()
+    key = _thread_key(user_id, assistant_id)
+    
+    thread_id = await redis.get(key)
+    
+    if thread_id:
+        log_thread_operation("GET", user_id, assistant_id, thread_id, 
+                            "Found existing thread, refreshing TTL")
+        # Refresh TTL on access
+        await redis.expire(key, THREAD_TTL_SECONDS)
+    else:
+        log_thread_operation("GET", user_id, assistant_id, None, 
+                            "No existing thread found")
+    
+    return thread_id
+
+

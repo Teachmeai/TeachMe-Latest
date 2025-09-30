@@ -26,11 +26,16 @@ class Redis:
 class OPA:
     URL: str = os.getenv("OPA_URL")
 
+class OpenAI:
+    API_KEY: str = os.getenv("OPENAI_API_KEY")
+    ORG_ID: str = os.getenv("OPENAI_ORG_ID")  # Optional
+
 class Config:
     app: App = App()
     supabase: Supabase = Supabase()
     jwt: JWT = JWT()
     redis: Redis = Redis()
     opa: OPA = OPA()
+    openai: OpenAI = OpenAI()
 
 config = Config()

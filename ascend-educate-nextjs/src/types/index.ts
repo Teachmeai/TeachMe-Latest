@@ -87,3 +87,27 @@ export interface ValidationRule {
   pattern?: RegExp
   custom?: (value: string) => string | null
 }
+
+// Assistant & Chat Types
+export interface Assistant {
+  id: string
+  name: string
+  description?: string
+  model: string
+  instructions?: string
+  tools?: string[]
+  metadata?: Record<string, any>
+}
+
+export interface ChatThread {
+  id: string
+  assistant_id: string
+  created_at?: string
+}
+
+export interface ChatMessage {
+  id: string
+  role: 'user' | 'assistant'
+  content: string
+  created_at: number
+}

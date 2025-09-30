@@ -58,10 +58,10 @@ import {
 import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
 // removed quick role switcher; role management happens inside Profile
-import type { UserSession, BackendProfile } from "../../lib/backend"
+import type { UserSession, BackendProfile, Assistant, AssistantMessage } from "../../lib/backend"
 import { backend } from "../../lib/backend"
 
-import type { UserProfile } from "@/types"
+import type { UserProfile, ChatMessage } from "@/types"
 
 
 interface ChatSession {
@@ -154,6 +154,35 @@ export function ChatDashboard({ user, onLogout, onSendMessage, onProfileUpdate, 
     }
   }, [isMobile])
 
+  // Fetch assistants from backend
+  useEffect(() => {
+    let mounted = true
+    const loadAssistants = async () => {
+      setLoadingAssistants(true)
+      try {
+        const resp = await backend.getAssistants()
+        if (!mounted || !resp.ok || !resp.data) {
+          console.error('Failed to load assistants:', resp.error)
+          return
+        }
+        console.log('Loaded assistants:', resp.data.assistants)
+        setAssistants(resp.data.assistants)
+      } catch (error) {
+        console.error('Error loading assistants:', error)
+      } finally {
+        if (mounted) {
+          setLoadingAssistants(false)
+        }
+      }
+    }
+    
+    if (session?.active_role) {
+      loadAssistants()
+    }
+    
+    return () => { mounted = false }
+  }, [session?.active_role, session?.active_org_id])
+
   // Professional sidebar resize handlers with boundary feedback
   const onResizeMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
     if (isMobile) return
@@ -195,27 +224,15 @@ export function ChatDashboard({ user, onLogout, onSendMessage, onProfileUpdate, 
     window.addEventListener('mouseup', onUp)
   }
   
-  // Mock chat sessions
-  const [chatSessions, setChatSessions] = useState<ChatSession[]>([
-    {
-      id: "1",
-      title: "Getting Started with AI Learning",
-      lastMessage: "How can I improve my study habits?",
-      timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString(), // 30 mins ago
-    },
-    {
-      id: "2", 
-      title: "Math Problem Solving",
-      lastMessage: "Can you help me with calculus?",
-      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(), // 2 hours ago
-    },
-    {
-      id: "3",
-      title: "Essay Writing Tips",
-      lastMessage: "How to structure an academic essay?",
-      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(), // 1 day ago
-    },
-  ])
+  // Real assistants from OpenAI
+  const [assistants, setAssistants] = useState<Assistant[]>([])
+  const [activeAssistant, setActiveAssistant] = useState<Assistant | null>(null)
+  const [activeThreadId, setActiveThreadId] = useState<string | null>(null)
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
+  const [loadingAssistants, setLoadingAssistants] = useState(false)
+  
+  // Keep chatSessions for backward compatibility (optional, can be removed later)
+  const [chatSessions, setChatSessions] = useState<ChatSession[]>([])
 
   const getInitials = (name: string) => {
     return name
@@ -225,15 +242,57 @@ export function ChatDashboard({ user, onLogout, onSendMessage, onProfileUpdate, 
       .toUpperCase()
   }
 
-  const handleNewChat = () => {
-    const newChat: ChatSession = {
-      id: Date.now().toString(),
-      title: "New Chat",
-      lastMessage: "",
-      timestamp: new Date().toISOString(),
+  const handleAssistantClick = async (assistant: Assistant) => {
+    console.log('Assistant clicked:', assistant.name)
+    setActiveAssistant(assistant)
+    setActiveChat(assistant.id)
+    
+    // Close sidebar on mobile after selection
+    if (isMobile) {
+      setSidebarOpen(false)
     }
-    setChatSessions(prev => [newChat, ...prev])
-    setActiveChat(newChat.id)
+    
+    try {
+      // 1. Check if thread exists for this assistant
+      let threadId = activeThreadId
+      if (!threadId || activeAssistant?.id !== assistant.id) {
+        // Create or get thread
+        const resp = await backend.createThread(assistant.id)
+        if (resp.ok && resp.data) {
+          threadId = resp.data.thread_id
+          setActiveThreadId(threadId)
+          console.log('Thread created/retrieved:', threadId)
+        } else {
+          console.error('Failed to create thread:', resp.error)
+          return
+        }
+      }
+      
+      // 2. Load existing messages
+      if (threadId) {
+        const messagesResp = await backend.getMessages(threadId)
+        if (messagesResp.ok && messagesResp.data) {
+          const messages: ChatMessage[] = messagesResp.data.messages.map(msg => ({
+            id: msg.id,
+            role: msg.role,
+            content: msg.content,
+            created_at: msg.created_at
+          }))
+          setChatMessages(messages)
+          console.log('Loaded messages:', messages.length)
+        }
+      }
+    } catch (error) {
+      console.error('Error handling assistant click:', error)
+    }
+  }
+  
+  const handleNewChat = () => {
+    // Clear current chat to start fresh
+    setActiveAssistant(null)
+    setActiveThreadId(null)
+    setChatMessages([])
+    setActiveChat(null)
   }
 
   const handleDeleteChat = (chatId: string) => {
@@ -409,72 +468,46 @@ export function ChatDashboard({ user, onLogout, onSendMessage, onProfileUpdate, 
             </div>
           </div>
 
-          {/* Chat History */}
+          {/* Assistants List */}
           <ScrollArea className="flex-1">
             <div className="p-3 space-y-1.5">
-              {filteredChats.map((chat, index) => (
-                <div
-                  key={chat.id}
-                  className={cn(
-                    "group flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-all duration-200 hover:bg-muted/60 relative overflow-hidden",
-                    activeChat === chat.id && "bg-primary/10 border border-primary/20 shadow-md"
+              {loadingAssistants ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="loading-spinner w-6 h-6"></div>
+                  <span className="ml-2 text-sm text-muted-foreground">Loading assistants...</span>
+                </div>
+              ) : assistants.length === 0 ? (
+                <div className="text-center py-8 px-4">
+                  <p className="text-sm text-muted-foreground">No assistants available</p>
+                  <p className="text-xs text-muted-foreground mt-2">Contact your administrator</p>
+                </div>
+              ) : (
+                assistants.map((assistant, index) => (
+                  <div
+                    key={assistant.id}
+                    onClick={() => handleAssistantClick(assistant)}
+                    className={cn(
+                      "group flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-all duration-200 hover:bg-muted/60 relative overflow-hidden",
+                      activeChat === assistant.id && "bg-primary/10 border border-primary/20 shadow-md"
                   )}
                   style={{ animationDelay: `${index * 0.1}s` }}
-                  onClick={() => {
-                    setActiveChat(chat.id)
-                    // Close sidebar on mobile when chat is selected
-                    if (isMobile) {
-                      setSidebarOpen(false)
-                    }
-                  }}
                 >
                   <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors duration-200">
                     <MessageSquare className="h-4 w-4 text-primary" />
                   </div>
                   <div className="flex-1 min-w-0 pr-2">
-                    <h4 className="text-sm font-medium truncate text-foreground group-hover:text-primary transition-colors duration-200">{chat.title}</h4>
-                    {chat.lastMessage && (
+                    <h4 className="text-sm font-medium truncate text-foreground group-hover:text-primary transition-colors duration-200">{assistant.name}</h4>
+                    {assistant.description && (
                       <p className="text-xs text-muted-foreground truncate mt-0.5 leading-relaxed">
-                        {chat.lastMessage}
+                        {assistant.description}
                       </p>
                     )}
                     <p className="text-xs text-muted-foreground/70 mt-1 font-medium">
-                      {formatTime(chat.timestamp)}
+                      {assistant.model}
                     </p>
                   </div>
-                  
-                  {/* Chat Actions - Enhanced with overlay on narrow sidebars */}
-                  <div className={cn(
-                    "absolute right-2 top-1/2 -translate-y-1/2 flex gap-1 bg-background/95 backdrop-blur-sm rounded-lg p-1 shadow-lg border border-border/50 transition-all duration-200",
-                    isMobile ? "opacity-100" : "opacity-0 translate-x-2 group-hover:opacity-100 group-hover:translate-x-0"
-                  )}>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 w-7 p-0 hover:bg-primary/10 hover:text-primary transition-all duration-200 hover:scale-110"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        // Edit chat title functionality
-                      }}
-                      title="Edit conversation"
-                    >
-                      <Edit className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 w-7 p-0 hover:bg-destructive/10 hover:text-destructive transition-all duration-200 hover:scale-110"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleDeleteChat(chat.id)
-                      }}
-                      title="Delete conversation"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
                 </div>
-              ))}
+              )))}
             </div>
           </ScrollArea>
 
@@ -606,10 +639,7 @@ export function ChatDashboard({ user, onLogout, onSendMessage, onProfileUpdate, 
               )}
               
               <h1 className="text-xl font-bold truncate bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
-                {activeChat ? 
-                  chatSessions.find(c => c.id === activeChat)?.title || "TeachMe AI" 
-                  : "TeachMe AI"
-                }
+                {activeAssistant ? activeAssistant.name : "TeachMe AI"}
               </h1>
             </div>
 
@@ -690,10 +720,14 @@ export function ChatDashboard({ user, onLogout, onSendMessage, onProfileUpdate, 
                 </div>
               </div>
             </div>
-          ) : activeChat || chatSessions.length === 0 ? (
+          ) : activeAssistant && activeThreadId ? (
             <ChatInterface
-              onSendMessage={onSendMessage}
-              placeholder={`Ask TeachMe AI anything about ${userProfile.role === "student" ? "learning" : userProfile.role === "teacher" ? "teaching" : "administration"}...`}
+              assistantId={activeAssistant.id}
+              assistantName={activeAssistant.name}
+              threadId={activeThreadId}
+              messages={chatMessages}
+              onMessagesUpdate={setChatMessages}
+              placeholder={`Chat with ${activeAssistant.name}...`}
             />
           ) : (
             <div className="h-full flex items-center justify-center p-4 sm:p-8 relative">

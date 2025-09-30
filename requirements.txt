@@ -5,4 +5,5 @@ redis
 pyjwt
 httpx
 python-dotenv
+openai
 

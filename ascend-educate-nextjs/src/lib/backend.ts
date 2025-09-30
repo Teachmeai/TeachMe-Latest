@@ -46,6 +46,28 @@ export interface BackendProfile {
   updated_at?: string
 }
 
+export interface Assistant {
+  id: string
+  name: string
+  description?: string
+  model: string
+  instructions?: string
+  tools?: string[]
+  metadata?: Record<string, any>
+}
+
+export interface Thread {
+  thread_id: string
+  created?: boolean
+}
+
+export interface AssistantMessage {
+  id: string
+  role: 'user' | 'assistant'
+  content: string
+  created_at: number
+}
+
 class BackendClient {
   private async request<T>(
     endpoint: string,
@@ -123,6 +145,43 @@ class BackendClient {
       method: 'POST',
       body: JSON.stringify({ role }),
     })
+  }
+
+  // Assistant Methods
+
+  async getAssistants(): Promise<BackendResponse<{ assistants: Assistant[]; user_role: string; user_org_id?: string }>> {
+    console.log('Fetching assistants from backend')
+    return this.request<{ assistants: Assistant[]; user_role: string; user_org_id?: string }>('/assistants')
+  }
+
+  async getAssistant(assistantId: string): Promise<BackendResponse<{ assistant: Assistant }>> {
+    console.log('Fetching assistant:', assistantId)
+    return this.request<{ assistant: Assistant }>(`/assistants/${assistantId}`)
+  }
+
+  async createThread(assistantId: string): Promise<BackendResponse<Thread>> {
+    console.log('Creating thread for assistant:', assistantId)
+    return this.request<Thread>(`/assistants/${assistantId}/threads`, {
+      method: 'POST',
+    })
+  }
+
+  async sendMessage(threadId: string, assistantId: string, message: string): Promise<BackendResponse<{ user_message: any; assistant_response: AssistantMessage }>> {
+    console.log('Sending message to thread:', threadId)
+    return this.request<{ user_message: any; assistant_response: AssistantMessage }>(
+      `/assistants/threads/${threadId}/messages/complete?assistant_id=${assistantId}`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ message }),
+      }
+    )
+  }
+
+  async getMessages(threadId: string): Promise<BackendResponse<{ messages: AssistantMessage[]; count: number }>> {
+    console.log('Fetching messages from thread:', threadId)
+    return this.request<{ messages: AssistantMessage[]; count: number }>(
+      `/assistants/threads/${threadId}/messages`
+    )
   }
 }
 
