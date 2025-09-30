@@ -446,7 +446,7 @@ export function ChatInterface({
             </div>
             
             {/* Professional Accent Line */}
-            <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-24 h-1 bg-gradient-to-r from-transparent via-primary/60 to-transparent rounded-full"></div>
+            <div className="hidden absolute -top-1 left-1/2 -translate-x-1/2 w-64 h-1 bg-gradient-to-r from-transparent via-primary/60 to-transparent rounded-full"></div>
           </div>
         </div>
       </div>

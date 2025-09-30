@@ -83,6 +83,11 @@ interface ChatDashboardProps {
 }
 
 export function ChatDashboard({ user, onLogout, onSendMessage, onProfileUpdate, session, onSwitchRole, onRefreshSession }: ChatDashboardProps) {
+  // Professional sidebar width constraints
+  const SIDEBAR_MIN_WIDTH = 319 // Minimum width for usability
+  const SIDEBAR_MAX_WIDTH = 520 // Maximum width to prevent it being too wide
+  const SIDEBAR_DEFAULT_WIDTH = 320 // Default comfortable width
+  
   const [isMobile, setIsMobile] = useState(false)
 
   // Simple mobile detection
@@ -96,8 +101,10 @@ export function ChatDashboard({ user, onLogout, onSendMessage, onProfileUpdate, 
   }, [])
   const [sidebarOpen, setSidebarOpen] = useState(!isMobile) // Default to closed on mobile
   const [sidebarAnimating, setSidebarAnimating] = useState(false)
-  const [sidebarWidth, setSidebarWidth] = useState<number>(320)
+  const [sidebarWidth, setSidebarWidth] = useState<number>(SIDEBAR_DEFAULT_WIDTH)
   const isResizingRef = useRef(false)
+  const [isAtMinWidth, setIsAtMinWidth] = useState(false)
+  const [isAtMaxWidth, setIsAtMaxWidth] = useState(false)
   const [activeChat, setActiveChat] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [userProfile, setUserProfile] = useState<UserProfile>(user)
@@ -147,24 +154,43 @@ export function ChatDashboard({ user, onLogout, onSendMessage, onProfileUpdate, 
     }
   }, [isMobile])
 
-  // Sidebar resize handlers (desktop only)
+  // Professional sidebar resize handlers with boundary feedback
   const onResizeMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
     if (isMobile) return
     e.preventDefault()
     isResizingRef.current = true
     const startX = e.clientX
     const startWidth = sidebarWidth
+    
     const onMove = (ev: MouseEvent) => {
       if (!isResizingRef.current) return
+      
       const delta = ev.clientX - startX
-      const next = Math.min(Math.max(startWidth + delta, 240), 520)
-      setSidebarWidth(next)
+      let newWidth = startWidth + delta
+      
+      // Apply constraints with smooth clamping
+      newWidth = Math.min(Math.max(newWidth, SIDEBAR_MIN_WIDTH), SIDEBAR_MAX_WIDTH)
+      
+      // Update boundary states for visual feedback
+      setIsAtMinWidth(newWidth <= SIDEBAR_MIN_WIDTH)
+      setIsAtMaxWidth(newWidth >= SIDEBAR_MAX_WIDTH)
+      
+      setSidebarWidth(newWidth)
     }
+    
     const onUp = () => {
       isResizingRef.current = false
+      
+      // Reset boundary states after a delay for visual feedback
+      setTimeout(() => {
+        setIsAtMinWidth(false)
+        setIsAtMaxWidth(false)
+      }, 200)
+      
       window.removeEventListener('mousemove', onMove)
       window.removeEventListener('mouseup', onUp)
     }
+    
     window.addEventListener('mousemove', onMove)
     window.addEventListener('mouseup', onUp)
   }
@@ -343,7 +369,7 @@ export function ChatDashboard({ user, onLogout, onSendMessage, onProfileUpdate, 
           style={!isMobile ? { width: `${sidebarWidth}px` } : undefined}
         >
           {/* Sidebar Header */}
-          <div className="p-6 border-b border-border/50 bg-gradient-to-r from-card/50 to-card/30">
+          <div className="p-6 border-b border-border/50 bg-gradient-to-r from-card/50 to-card/30 shadow-sm">
             <div className="flex items-center justify-between mb-6">
               <Logo size="sm" className="animate-fade-in" />
               <div className="flex items-center gap-2">
@@ -362,7 +388,7 @@ export function ChatDashboard({ user, onLogout, onSendMessage, onProfileUpdate, 
             {/* New Chat Button */}
             <Button
               onClick={handleNewChat}
-              className="w-full glass-button hover-scale text-primary-foreground border-0 shadow-lg hover:shadow-xl"
+              className="w-full glass-button hover-scale text-primary-foreground border-0 shadow-lg hover:shadow-xl group"
               variant="default"
             >
               <Plus className="h-4 w-4 mr-2 transition-transform duration-200 group-hover:rotate-90" />
@@ -371,27 +397,27 @@ export function ChatDashboard({ user, onLogout, onSendMessage, onProfileUpdate, 
           </div>
 
           {/* Search */}
-          <div className="p-6 border-b border-border/50">
+          <div className="p-4 px-6 border-b border-border/50">
             <div className="relative group">
               <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground transition-colors duration-200 group-focus-within:text-primary" />
               <Input
                 placeholder="Search conversations..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-12 pr-4 py-3 bg-muted/30 border-0 rounded-xl focus:bg-muted/50 transition-all duration-200 focus:ring-2 focus:ring-primary/20"
+                className="pl-12 pr-4 py-2.5 bg-muted/30 border border-border/20 rounded-xl focus:bg-muted/50 transition-all duration-200 focus:ring-2 focus:ring-primary/30 focus:border-primary/50"
               />
             </div>
           </div>
 
           {/* Chat History */}
           <ScrollArea className="flex-1">
-            <div className="p-4 space-y-2">
+            <div className="p-3 space-y-1.5">
               {filteredChats.map((chat, index) => (
                 <div
                   key={chat.id}
                   className={cn(
-                    "group flex items-start gap-4 p-4 rounded-xl cursor-pointer transition-all duration-200 hover:bg-muted/60 hover:scale-[1.02] relative glass-card hover-lift",
-                    activeChat === chat.id && "bg-primary/10 border border-primary/20 shadow-lg"
+                    "group flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-all duration-200 hover:bg-muted/60 relative overflow-hidden",
+                    activeChat === chat.id && "bg-primary/10 border border-primary/20 shadow-md"
                   )}
                   style={{ animationDelay: `${index * 0.1}s` }}
                   onClick={() => {
@@ -402,45 +428,47 @@ export function ChatDashboard({ user, onLogout, onSendMessage, onProfileUpdate, 
                     }
                   }}
                 >
-                  <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors duration-200">
-                    <MessageSquare className="h-5 w-5 text-primary" />
+                  <div className="flex-shrink-0 w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors duration-200">
+                    <MessageSquare className="h-4 w-4 text-primary" />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <h4 className="text-heading-md truncate text-foreground group-hover:text-primary transition-colors duration-200">{chat.title}</h4>
+                  <div className="flex-1 min-w-0 pr-2">
+                    <h4 className="text-sm font-medium truncate text-foreground group-hover:text-primary transition-colors duration-200">{chat.title}</h4>
                     {chat.lastMessage && (
-                      <p className="text-caption text-muted-foreground truncate mt-1 leading-relaxed">
+                      <p className="text-xs text-muted-foreground truncate mt-0.5 leading-relaxed">
                         {chat.lastMessage}
                       </p>
                     )}
-                    <p className="text-caption text-muted-foreground/70 mt-2 font-medium">
+                    <p className="text-xs text-muted-foreground/70 mt-1 font-medium">
                       {formatTime(chat.timestamp)}
                     </p>
                   </div>
                   
-                  {/* Chat Actions - Enhanced */}
+                  {/* Chat Actions - Enhanced with overlay on narrow sidebars */}
                   <div className={cn(
-                    "transition-all duration-200 flex gap-1",
-                    isMobile ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                    "absolute right-2 top-1/2 -translate-y-1/2 flex gap-1 bg-background/95 backdrop-blur-sm rounded-lg p-1 shadow-lg border border-border/50 transition-all duration-200",
+                    isMobile ? "opacity-100" : "opacity-0 translate-x-2 group-hover:opacity-100 group-hover:translate-x-0"
                   )}>
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-8 w-8 p-0 hover:bg-primary/10 hover:text-primary transition-all duration-200 hover:scale-110"
+                      className="h-7 w-7 p-0 hover:bg-primary/10 hover:text-primary transition-all duration-200 hover:scale-110"
                       onClick={(e) => {
                         e.stopPropagation()
                         // Edit chat title functionality
                       }}
+                      title="Edit conversation"
                     >
                       <Edit className="h-3.5 w-3.5" />
                     </Button>
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-8 w-8 p-0 hover:bg-destructive/10 hover:text-destructive transition-all duration-200 hover:scale-110"
+                      className="h-7 w-7 p-0 hover:bg-destructive/10 hover:text-destructive transition-all duration-200 hover:scale-110"
                       onClick={(e) => {
                         e.stopPropagation()
                         handleDeleteChat(chat.id)
                       }}
+                      title="Delete conversation"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
@@ -451,19 +479,19 @@ export function ChatDashboard({ user, onLogout, onSendMessage, onProfileUpdate, 
           </ScrollArea>
 
           {/* User Profile */}
-          <div className="p-6 border-t border-border/50 bg-gradient-to-r from-card/30 to-card/50">
+          <div className="p-4 border-t border-border/50 bg-gradient-to-r from-card/30 to-card/50 shadow-inner">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="w-full justify-start p-3 h-auto hover:bg-muted/50 transition-all duration-200 rounded-xl group">
-                  <Avatar className="h-10 w-10 mr-4 ring-2 ring-primary/20 group-hover:ring-primary/40 transition-all duration-200">
+                <Button variant="ghost" className="w-full justify-start p-2.5 h-auto hover:bg-muted/50 transition-all duration-200 rounded-lg group">
+                  <Avatar className="h-9 w-9 mr-3 ring-2 ring-primary/20 group-hover:ring-primary/40 transition-all duration-200">
                     <AvatarImage src={userProfile.avatar} alt={userProfile.name} />
                     <AvatarFallback className="bg-gradient-primary text-primary-foreground text-sm font-semibold">
                       {getInitials(userProfile.name)}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 text-left">
-                    <p className="text-heading-md text-foreground group-hover:text-primary transition-colors duration-200">{userProfile.name}</p>
-                    <p className="text-caption text-muted-foreground capitalize font-medium">{userProfile.role}</p>
+                    <p className="text-sm font-medium text-foreground group-hover:text-primary transition-colors duration-200">{userProfile.name}</p>
+                    <p className="text-xs text-muted-foreground capitalize">{userProfile.role}</p>
                   </div>
                 </Button>
               </DropdownMenuTrigger>
@@ -502,14 +530,46 @@ export function ChatDashboard({ user, onLogout, onSendMessage, onProfileUpdate, 
         </div>
       )}
 
-      {/* Desktop resize handle */}
+      {/* Desktop resize handle with boundary feedback */}
       {!isMobile && sidebarOpen && (
         <div
           onMouseDown={onResizeMouseDown}
-          title="Drag to resize"
+          title={
+            isAtMinWidth 
+              ? `Minimum width reached (${SIDEBAR_MIN_WIDTH}px)` 
+              : isAtMaxWidth 
+              ? `Maximum width reached (${SIDEBAR_MAX_WIDTH}px)` 
+              : "Drag to resize sidebar"
+          }
           style={{ cursor: 'col-resize' }}
-          className="w-1 hover:w-2 transition-[width] duration-150 bg-border/60 dark:bg-border/40"
-        />
+          className={cn(
+            "group relative w-3 hover:w-4 transition-all duration-200 flex items-center justify-center",
+            isAtMinWidth || isAtMaxWidth
+              ? "bg-gradient-to-r from-destructive/30 via-destructive/50 to-destructive/30"
+              : "bg-gradient-to-r from-border/30 via-border/50 to-border/30 hover:from-primary/20 hover:via-primary/30 hover:to-primary/20"
+          )}
+        >
+          <div className="flex flex-col gap-1 opacity-40 group-hover:opacity-100 transition-opacity duration-200">
+            <div className={cn(
+              "w-0.5 h-3 rounded-full transition-all duration-200",
+              isAtMinWidth || isAtMaxWidth
+                ? "bg-destructive"
+                : "bg-muted-foreground/50 group-hover:bg-primary"
+            )}></div>
+            <div className={cn(
+              "w-0.5 h-3 rounded-full transition-all duration-200",
+              isAtMinWidth || isAtMaxWidth
+                ? "bg-destructive"
+                : "bg-muted-foreground/50 group-hover:bg-primary"
+            )}></div>
+            <div className={cn(
+              "w-0.5 h-3 rounded-full transition-all duration-200",
+              isAtMinWidth || isAtMaxWidth
+                ? "bg-destructive"
+                : "bg-muted-foreground/50 group-hover:bg-primary"
+            )}></div>
+          </div>
+        </div>
       )}
 
       {/* Main Content */}
@@ -518,7 +578,7 @@ export function ChatDashboard({ user, onLogout, onSendMessage, onProfileUpdate, 
         !sidebarOpen && "main-content-expand"
       )}>
         {/* Header */}
-        <div className="border-b border-border/50 bg-gradient-to-r from-card/80 to-card/60 backdrop-blur-md shadow-sm">
+        <div className="border-b border-border/50 bg-gradient-to-r from-card/80 to-card/60 backdrop-blur-md shadow-md">
           <div className="flex items-center justify-between px-6 py-4">
             <div className="flex items-center gap-3">
               {/* Mobile Menu Button */}

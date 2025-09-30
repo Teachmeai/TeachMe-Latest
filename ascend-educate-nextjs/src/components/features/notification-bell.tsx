@@ -209,7 +209,7 @@ export function NotificationBell() {
           )}
           
           {!isMuted && unreadCount > 0 && (
-            <div className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center bg-destructive text-destructive-foreground rounded-full text-xs font-bold shadow-lg border-2 border-background animate-notification-bounce">
+            <div className="absolute -top-0.5 -right-0.5 min-h-[20px] min-w-[20px] px-1.5 flex items-center justify-center bg-destructive text-destructive-foreground rounded-full text-[10px] font-bold shadow-lg border-2 border-background animate-notification-bounce">
               {unreadCount > 9 ? '9+' : unreadCount}
             </div>
           )}
