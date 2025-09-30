@@ -243,7 +243,7 @@ export function ChatInterface({
           message: text,
           user_id: userId, // Extract from JWT token
           thread_id: threadId, // null for first message, then use returned thread_id
-          assistant_id: "asst_aqIKBfxBLoKVRTo1la5T8FwX", // null to use Super-Admin Agent
+          assistant_id: "asst_NyCIpeNKfVMMbzK8JfwryCff", // null to use Super-Admin Agent
           context: {}
         }),
       })
