@@ -194,26 +194,28 @@ export function NotificationBell() {
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
       <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="relative h-10 w-10 hover:bg-primary/10 transition-all duration-300 hover:scale-110 active:scale-95"
-        >
-          {isMuted ? (
-            <BellOff className="h-5 w-5 text-muted-foreground transition-colors duration-200" />
-          ) : (
-            <Bell className={cn(
-              "h-5 w-5 text-muted-foreground hover:text-primary transition-all duration-200",
-              unreadCount > 0 && "animate-wiggle"
-            )} />
-          )}
+        <div className="relative inline-flex">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-10 w-10 hover:bg-primary/10 transition-all duration-300 hover:scale-110 active:scale-95"
+          >
+            {isMuted ? (
+              <BellOff className="h-5 w-5 text-muted-foreground transition-colors duration-200" />
+            ) : (
+              <Bell className={cn(
+                "h-5 w-5 text-muted-foreground hover:text-primary transition-all duration-200",
+                unreadCount > 0 && "animate-wiggle"
+              )} />
+            )}
+          </Button>
           
           {!isMuted && unreadCount > 0 && (
-            <div className="absolute -top-0.5 -right-0.5 min-h-[20px] min-w-[20px] px-1.5 flex items-center justify-center bg-destructive text-destructive-foreground rounded-full text-[10px] font-bold shadow-lg border-2 border-background animate-notification-bounce">
+            <span className="absolute -top-1 -right-1 flex h-5 min-w-[20px] items-center justify-center rounded-full bg-destructive px-1.5 text-[10px] font-bold text-destructive-foreground shadow-lg border-2 border-background animate-notification-bounce z-10">
               {unreadCount > 9 ? '9+' : unreadCount}
-            </div>
+            </span>
           )}
-        </Button>
+        </div>
       </DropdownMenuTrigger>
       
       <DropdownMenuContent 
@@ -270,7 +272,7 @@ export function NotificationBell() {
               <Bell className="h-8 w-8 text-muted-foreground/50 mx-auto mb-2" />
               <p className="text-sm text-muted-foreground">No notifications yet</p>
               <p className="text-xs text-muted-foreground mt-1">
-                We'll notify you when something important happens
+                We&apos;ll notify you when something important happens
               </p>
             </div>
           ) : (
