@@ -5,6 +5,7 @@ import { Camera } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { cn } from "@/lib/utils"
+import { SPACING, TYPOGRAPHY } from "@/config/design-tokens"
 
 interface ProfilePictureUploadProps {
   imageUrl?: string
@@ -42,9 +43,9 @@ export function ProfilePictureUpload({
   }
 
   return (
-    <div className={cn("flex flex-col items-center space-y-4", className)}>
+    <div className={cn("flex flex-col items-center", SPACING.flex.default, className)}>
       <div className="relative">
-        <Avatar className="h-24 w-24">
+        <Avatar className="h-24 w-24 ring-2 ring-border/20">
           <AvatarImage src={imageUrl} alt="Profile" />
           <AvatarFallback className="bg-primary/10 text-primary text-xl">
             {getInitials(name || 'U')}
@@ -53,7 +54,7 @@ export function ProfilePictureUpload({
         <Button
           size="sm"
           variant="secondary"
-          className="absolute -bottom-2 -right-2 h-8 w-8 rounded-full p-0"
+          className="absolute -bottom-2 -right-2 h-8 w-8 rounded-full p-0 shadow-sm"
           onClick={() => fileInputRef.current?.click()}
         >
           <Camera className="h-4 w-4" />
@@ -66,7 +67,7 @@ export function ProfilePictureUpload({
           className="hidden"
         />
       </div>
-      <p className="text-sm text-muted-foreground">Click to upload profile picture</p>
+      <p className={cn(TYPOGRAPHY.body.muted)}>Click to upload profile picture</p>
     </div>
   )
 }

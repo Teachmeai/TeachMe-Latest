@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { ProfilePictureUpload } from "./ProfilePictureUpload"
 import { FormData, ValidationErrors } from "@/types"
 import { cn } from "@/lib/utils"
+import { SPACING, PADDING, TYPOGRAPHY, BACKGROUNDS, BORDERS, BORDER_RADIUS } from "@/config/design-tokens"
 
 interface BasicInfoFormProps {
   formData: FormData
@@ -59,7 +60,7 @@ export function BasicInfoForm({
   }
 
   return (
-    <div className={cn("space-y-10", className)}>
+    <div className={cn(SPACING.form.betweenSections, className)}>
       {/* Profile Picture */}
       <div className="flex justify-center">
         <ProfilePictureUpload
@@ -70,127 +71,127 @@ export function BasicInfoForm({
       </div>
 
       {/* Common Fields */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div className="space-y-3">
-          <Label htmlFor="name" className="text-base font-semibold">Full Name *</Label>
+      <div className={cn("grid grid-cols-1 lg:grid-cols-2", SPACING.grid.formFields)}>
+        <div className={SPACING.form.betweenLabelAndInput}>
+          <Label htmlFor="name" className={TYPOGRAPHY.label.default}>Full Name *</Label>
           <Input
             id="name"
             value={formData.name}
             onChange={(e) => onFieldChange('name', e.target.value)}
-            className={cn("h-12 text-base", errors.name && "border-destructive")}
+            className={cn(TYPOGRAPHY.input.height, TYPOGRAPHY.input.size, errors.name && "border-destructive")}
             placeholder="Enter your full name"
           />
           {errors.name && (
-            <p className="text-sm text-destructive font-medium">{errors.name}</p>
+            <p className={cn(TYPOGRAPHY.body.small, "text-destructive font-medium")}>{errors.name}</p>
           )}
         </div>
 
-        <div className="space-y-3">
-          <Label htmlFor="email" className="text-base font-semibold">Email Address</Label>
+        <div className={SPACING.form.betweenLabelAndInput}>
+          <Label htmlFor="email" className={TYPOGRAPHY.label.default}>Email Address</Label>
           <Input
             id="email"
             type="email"
             value={formData.email}
             onChange={(e) => onFieldChange('email', e.target.value)}
-            className={cn("h-12 text-base bg-muted/50", errors.email && "border-destructive")}
+            className={cn(TYPOGRAPHY.input.height, TYPOGRAPHY.input.size, "bg-muted/50", errors.email && "border-destructive")}
             placeholder="Enter your email"
             disabled
           />
           {errors.email && (
-            <p className="text-sm text-destructive font-medium">{errors.email}</p>
+            <p className={cn(TYPOGRAPHY.body.small, "text-destructive font-medium")}>{errors.email}</p>
           )}
         </div>
 
-        <div className="space-y-3">
-          <Label htmlFor="phoneNumber" className="text-base font-semibold">Phone Number *</Label>
+        <div className={SPACING.form.betweenLabelAndInput}>
+          <Label htmlFor="phoneNumber" className={TYPOGRAPHY.label.default}>Phone Number *</Label>
           <Input
             id="phoneNumber"
             type="tel"
             value={formData.phoneNumber}
             onChange={(e) => onFieldChange('phoneNumber', e.target.value)}
-            className={cn("h-12 text-base", errors.phoneNumber && "border-destructive")}
+            className={cn(TYPOGRAPHY.input.height, TYPOGRAPHY.input.size, errors.phoneNumber && "border-destructive")}
             placeholder="Enter your phone number"
           />
           {errors.phoneNumber && (
-            <p className="text-sm text-destructive font-medium">{errors.phoneNumber}</p>
+            <p className={cn(TYPOGRAPHY.body.small, "text-destructive font-medium")}>{errors.phoneNumber}</p>
           )}
-          <p className="text-sm text-muted-foreground">
+          <p className={TYPOGRAPHY.body.muted}>
             Enter your phone number with country code or local format
           </p>
         </div>
       </div>
 
       {/* Address & Bio */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div className="space-y-3">
-          <Label htmlFor="address" className="text-base font-semibold">Address</Label>
+      <div className={cn("grid grid-cols-1 lg:grid-cols-2", SPACING.grid.formFields)}>
+        <div className={SPACING.form.betweenLabelAndInput}>
+          <Label htmlFor="address" className={TYPOGRAPHY.label.default}>Address</Label>
           <Input
             id="address"
             value={formData.address}
             onChange={(e) => onFieldChange('address', e.target.value)}
             placeholder="Street address"
-            className="h-12 text-base"
+            className={cn(TYPOGRAPHY.input.height, TYPOGRAPHY.input.size)}
           />
         </div>
-        <div className="space-y-3">
-          <Label htmlFor="city" className="text-base font-semibold">City</Label>
+        <div className={SPACING.form.betweenLabelAndInput}>
+          <Label htmlFor="city" className={TYPOGRAPHY.label.default}>City</Label>
           <Input
             id="city"
             value={formData.city}
             onChange={(e) => onFieldChange('city', e.target.value)}
             placeholder="City"
-            className="h-12 text-base"
+            className={cn(TYPOGRAPHY.input.height, TYPOGRAPHY.input.size)}
           />
         </div>
-        <div className="space-y-3">
-          <Label htmlFor="state" className="text-base font-semibold">State</Label>
+        <div className={SPACING.form.betweenLabelAndInput}>
+          <Label htmlFor="state" className={TYPOGRAPHY.label.default}>State</Label>
           <Input
             id="state"
             value={formData.state}
             onChange={(e) => onFieldChange('state', e.target.value)}
             placeholder="State"
-            className="h-12 text-base"
+            className={cn(TYPOGRAPHY.input.height, TYPOGRAPHY.input.size)}
           />
         </div>
-        <div className="space-y-3">
-          <Label htmlFor="country" className="text-base font-semibold">Country</Label>
+        <div className={SPACING.form.betweenLabelAndInput}>
+          <Label htmlFor="country" className={TYPOGRAPHY.label.default}>Country</Label>
           <Input
             id="country"
             value={formData.country}
             onChange={(e) => onFieldChange('country', e.target.value)}
             placeholder="Country"
-            className="h-12 text-base"
+            className={cn(TYPOGRAPHY.input.height, TYPOGRAPHY.input.size)}
           />
         </div>
-        <div className="space-y-3">
-          <Label htmlFor="postalCode" className="text-base font-semibold">Postal Code</Label>
+        <div className={SPACING.form.betweenLabelAndInput}>
+          <Label htmlFor="postalCode" className={TYPOGRAPHY.label.default}>Postal Code</Label>
           <Input
             id="postalCode"
             value={formData.postalCode}
             onChange={(e) => onFieldChange('postalCode', e.target.value)}
             placeholder="Postal/ZIP code"
-            className="h-12 text-base"
+            className={cn(TYPOGRAPHY.input.height, TYPOGRAPHY.input.size)}
           />
         </div>
-        <div className="space-y-3 lg:col-span-2">
-          <Label htmlFor="bio" className="text-base font-semibold">Bio</Label>
+        <div className={cn(SPACING.form.betweenLabelAndInput, "lg:col-span-2")}>
+          <Label htmlFor="bio" className={TYPOGRAPHY.label.default}>Bio</Label>
           <Input
             id="bio"
             value={formData.bio}
             onChange={(e) => onFieldChange('bio', e.target.value)}
             placeholder="A short bio about you"
-            className="h-12 text-base"
+            className={cn(TYPOGRAPHY.input.height, TYPOGRAPHY.input.size)}
           />
         </div>
       </div>
 
       {/* Social Media Links (Smart input) */}
-      <div className="space-y-6 p-6 bg-gradient-to-r from-muted/30 to-muted/10 rounded-xl border border-border/50">
-        <h4 className="text-xl font-bold text-foreground">Social Media Links</h4>
-        <div className="space-y-4">
-          <div className="space-y-3">
-            <Label htmlFor="social-link" className="text-base font-semibold">Paste a social link</Label>
-            <div className="flex gap-3">
+      <div className={cn(SPACING.form.betweenFields, PADDING.container.medium, BACKGROUNDS.muted.subtle, BORDER_RADIUS.default, BORDERS.default)}>
+        <h4 className={TYPOGRAPHY.heading.subsection}>Social Media Links</h4>
+        <div className={SPACING.form.betweenFields}>
+          <div className={SPACING.form.betweenLabelAndInput}>
+            <Label htmlFor="social-link" className={TYPOGRAPHY.label.default}>Paste a social link</Label>
+            <div className={cn("flex", SPACING.flex.tight)}>
               <Input
                 id="social-link"
                 type="url"
@@ -198,22 +199,22 @@ export function BasicInfoForm({
                 onChange={(e) => setSocialLink(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleSocialLinkSubmit() } }}
                 placeholder="Paste LinkedIn, Twitter/X, GitHub, or Website URL and press Enter"
-                className="h-12 text-base flex-1"
+                className={cn(TYPOGRAPHY.input.height, TYPOGRAPHY.input.size, "flex-1")}
               />
               <button
                 type="button"
-                className="px-6 py-3 text-base font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-all duration-200 hover:scale-105"
+                className={cn("px-6 py-3 font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors", BORDER_RADIUS.default, TYPOGRAPHY.input.size)}
                 onClick={handleSocialLinkSubmit}
               >
                 Add
               </button>
             </div>
-            <p className="text-sm text-muted-foreground">We'll detect the platform and place it in the right field.</p>
+            <p className={TYPOGRAPHY.body.muted}>We'll detect the platform and place it in the right field.</p>
           </div>
 
-          <div className="space-y-3">
-            <Label className="text-base font-semibold">Added links</Label>
-            <div className="flex flex-wrap gap-3">
+          <div className={SPACING.form.betweenLabelAndInput}>
+            <Label className={TYPOGRAPHY.label.default}>Added links</Label>
+            <div className={cn("flex flex-wrap", SPACING.flex.default)}>
               {formData.linkedin && (
                 <Badge variant="secondary" className="px-3 py-1 text-sm font-medium bg-blue-50 dark:bg-blue-950/20 text-blue-700 dark:text-blue-300">
                   LinkedIn added
@@ -235,7 +236,7 @@ export function BasicInfoForm({
                 </Badge>
               )}
               {!formData.linkedin && !formData.twitter && !formData.github && !formData.website && (
-                <p className="text-sm text-muted-foreground">No links added yet.</p>
+                <p className={TYPOGRAPHY.body.muted}>No links added yet.</p>
               )}
             </div>
           </div>

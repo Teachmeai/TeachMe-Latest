@@ -20,6 +20,7 @@ import { backend } from "@/lib/backend"
 import type { UserProfile } from "@/types"
 import type { BackendProfile } from "@/lib/backend"
 import { useTabState } from "@/hooks/useTabState"
+import { SPACING, PADDING, TYPOGRAPHY, BACKGROUNDS, BORDERS, BORDER_RADIUS } from "@/config/design-tokens"
 
 export function ProfileManagement({ 
   user, 
@@ -102,26 +103,28 @@ export function ProfileManagement({
   }
 
   const renderBasicInfo = () => (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between p-6 bg-gradient-to-r from-muted/30 to-muted/10 rounded-xl border border-border/50">
-        <div>
-          <h3 className="text-xl font-bold text-foreground">
-            Basic Information
-            {isEditing && (
-              <span className="ml-3 text-sm text-primary font-medium bg-primary/10 px-2 py-1 rounded-full">(Editing)</span>
-            )}
-          </h3>
-          <p className="text-muted-foreground mt-1">Manage your personal details and contact information</p>
+    <div className={SPACING.form.betweenSections}>
+      <div className={cn(PADDING.sectionHeader, BACKGROUNDS.muted.subtle, BORDER_RADIUS.default, BORDERS.default)}>
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className={cn(TYPOGRAPHY.heading.section, "text-foreground")}>
+              Basic Information
+              {isEditing && (
+                <span className={cn("ml-3 text-primary font-medium bg-primary/10 px-2 py-1", BORDER_RADIUS.full, TYPOGRAPHY.body.small)}>(Editing)</span>
+              )}
+            </h3>
+            <p className={cn(TYPOGRAPHY.body.muted, "mt-1")}>Manage your personal details and contact information</p>
+          </div>
+          <FormActions
+            isEditing={isEditing}
+            isSaving={isSaving}
+            saveSuccess={saveSuccess}
+            errors={basicErrors}
+            onEdit={handleEdit}
+            onCancel={handleCancel}
+            onSave={handleSaveBasic}
+          />
         </div>
-        <FormActions
-          isEditing={isEditing}
-          isSaving={isSaving}
-          saveSuccess={saveSuccess}
-          errors={basicErrors}
-          onEdit={handleEdit}
-          onCancel={handleCancel}
-          onSave={handleSaveBasic}
-        />
       </div>
 
       {isEditing ? (
@@ -132,45 +135,45 @@ export function ProfileManagement({
           onImageChange={(imageUrl) => handleFieldChange('profilePicture', imageUrl)}
         />
       ) : (
-        <div className="space-y-6">
-          <div className="flex items-center space-x-6 p-6 bg-gradient-to-r from-card/50 to-card/30 rounded-xl border border-border/50">
-            <Avatar className="h-20 w-20 ring-4 ring-primary/20 shadow-lg">
+        <div className={SPACING.form.betweenFields}>
+          <div className={cn("flex items-center gap-6", PADDING.container.medium, BACKGROUNDS.card.subtle, BORDER_RADIUS.default, BORDERS.default)}>
+            <Avatar className="h-20 w-20 ring-2 ring-primary/20 shadow-sm">
               <AvatarImage src={profile?.avatar_url || user.avatar} alt={user.name} />
               <AvatarFallback className="bg-gradient-primary text-primary-foreground text-xl font-bold">
                 {getInitials(user.name)}
               </AvatarFallback>
             </Avatar>
             <div className="flex-1">
-              <h4 className="text-2xl font-bold text-foreground">{profile?.full_name || user.name}</h4>
-              <p className="text-muted-foreground text-lg">{user.email}</p>
-              <div className="flex items-center gap-2 mt-2">
+              <h4 className="text-xl font-bold text-foreground">{profile?.full_name || user.name}</h4>
+              <p className={cn(TYPOGRAPHY.body.default, "text-muted-foreground")}>{user.email}</p>
+              <div className={cn("flex items-center mt-2", SPACING.flex.tight)}>
                 <div className="w-2 h-2 bg-primary rounded-full"></div>
-                <span className="text-sm text-muted-foreground capitalize font-medium">{user.role}</span>
+                <span className={cn(TYPOGRAPHY.body.small, "text-muted-foreground capitalize font-medium")}>{user.role}</span>
               </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="p-4 bg-muted/30 rounded-lg border border-border/50">
-              <p className="text-sm font-semibold text-muted-foreground mb-2">Address</p>
-              <p className="text-base text-foreground">{profile ? [profile.address, profile.city, profile.state, profile.country].filter(Boolean).join(", ") : 'Not specified'}</p>
+          <div className={cn("grid grid-cols-1 md:grid-cols-2", SPACING.grid.cards)}>
+            <div className={cn(PADDING.card, BACKGROUNDS.muted.light, BORDER_RADIUS.default, BORDERS.default)}>
+              <p className={cn(TYPOGRAPHY.heading.card, "text-muted-foreground mb-2")}>Address</p>
+              <p className={TYPOGRAPHY.body.default}>{profile ? [profile.address, profile.city, profile.state, profile.country].filter(Boolean).join(", ") : 'Not specified'}</p>
             </div>
-            <div className="p-4 bg-muted/30 rounded-lg border border-border/50">
-              <p className="text-sm font-semibold text-muted-foreground mb-2">Phone</p>
-              <p className="text-base text-foreground">{profile?.phone || 'Not specified'}</p>
+            <div className={cn(PADDING.card, BACKGROUNDS.muted.light, BORDER_RADIUS.default, BORDERS.default)}>
+              <p className={cn(TYPOGRAPHY.heading.card, "text-muted-foreground mb-2")}>Phone</p>
+              <p className={TYPOGRAPHY.body.default}>{profile?.phone || 'Not specified'}</p>
             </div>
           </div>
 
           {(profile?.linkedin_url || profile?.twitter_url || profile?.github_url || profile?.website) && (
-            <div className="p-6 bg-gradient-to-r from-muted/30 to-muted/10 rounded-xl border border-border/50">
-              <p className="text-lg font-semibold text-muted-foreground mb-4">Social Media</p>
-              <div className="flex flex-wrap gap-3">
+            <div className={cn(PADDING.container.medium, BACKGROUNDS.muted.subtle, BORDER_RADIUS.default, BORDERS.default)}>
+              <p className={cn(TYPOGRAPHY.heading.card, "text-muted-foreground mb-4")}>Social Media</p>
+              <div className={cn("flex flex-wrap", SPACING.flex.tight)}>
                 {profile?.linkedin_url && (
                   <a 
                     href={profile.linkedin_url} 
                     target="_blank" 
                     rel="noopener noreferrer" 
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 dark:bg-blue-950/20 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-950/30 transition-all duration-200 hover:scale-105"
+                    className={cn("inline-flex items-center px-4 py-2 bg-blue-50 dark:bg-blue-950/20 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-950/30 transition-colors", BORDER_RADIUS.default, SPACING.flex.tight)}
                   >
                     <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                     LinkedIn
@@ -181,7 +184,7 @@ export function ProfileManagement({
                     href={profile.twitter_url} 
                     target="_blank" 
                     rel="noopener noreferrer" 
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-sky-50 dark:bg-sky-950/20 text-sky-700 dark:text-sky-300 rounded-lg hover:bg-sky-100 dark:hover:bg-sky-950/30 transition-all duration-200 hover:scale-105"
+                    className={cn("inline-flex items-center px-4 py-2 bg-sky-50 dark:bg-sky-950/20 text-sky-700 dark:text-sky-300 hover:bg-sky-100 dark:hover:bg-sky-950/30 transition-colors", BORDER_RADIUS.default, SPACING.flex.tight)}
                   >
                     <div className="w-2 h-2 bg-sky-500 rounded-full"></div>
                     Twitter
@@ -192,7 +195,7 @@ export function ProfileManagement({
                     href={profile.github_url} 
                     target="_blank" 
                     rel="noopener noreferrer" 
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-gray-50 dark:bg-gray-950/20 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-950/30 transition-all duration-200 hover:scale-105"
+                    className={cn("inline-flex items-center px-4 py-2 bg-gray-50 dark:bg-gray-950/20 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-950/30 transition-colors", BORDER_RADIUS.default, SPACING.flex.tight)}
                   >
                     <div className="w-2 h-2 bg-gray-500 rounded-full"></div>
                     GitHub
@@ -203,7 +206,7 @@ export function ProfileManagement({
                     href={profile.website} 
                     target="_blank" 
                     rel="noopener noreferrer" 
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 text-primary rounded-lg hover:bg-primary/20 transition-all duration-200 hover:scale-105"
+                    className={cn("inline-flex items-center px-4 py-2 bg-primary/10 text-primary hover:bg-primary/20 transition-colors", BORDER_RADIUS.default, SPACING.flex.tight)}
                   >
                     <div className="w-2 h-2 bg-primary rounded-full"></div>
                     Website
@@ -218,26 +221,28 @@ export function ProfileManagement({
   )
 
   const renderRoleManagement = () => (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between p-6 bg-gradient-to-r from-muted/30 to-muted/10 rounded-xl border border-border/50">
-        <div>
-          <h3 className="text-xl font-bold text-foreground">
-            Role Management
-            {isEditing && (
-              <span className="ml-3 text-sm text-primary font-medium bg-primary/10 px-2 py-1 rounded-full">(Editing)</span>
-            )}
-          </h3>
-          <p className="text-muted-foreground mt-1">Configure your roles and permissions within the platform</p>
+    <div className={SPACING.form.betweenSections}>
+      <div className={cn(PADDING.sectionHeader, BACKGROUNDS.muted.subtle, BORDER_RADIUS.default, BORDERS.default)}>
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className={cn(TYPOGRAPHY.heading.section, "text-foreground")}>
+              Role Management
+              {isEditing && (
+                <span className={cn("ml-3 text-primary font-medium bg-primary/10 px-2 py-1", BORDER_RADIUS.full, TYPOGRAPHY.body.small)}>(Editing)</span>
+              )}
+            </h3>
+            <p className={cn(TYPOGRAPHY.body.muted, "mt-1")}>Configure your roles and permissions within the platform</p>
+          </div>
+          <FormActions
+            isEditing={isEditing}
+            isSaving={isSaving}
+            saveSuccess={saveSuccess}
+            errors={roleErrors}
+            onEdit={handleEdit}
+            onCancel={handleCancel}
+            onSave={handleSaveRole}
+          />
         </div>
-        <FormActions
-          isEditing={isEditing}
-          isSaving={isSaving}
-          saveSuccess={saveSuccess}
-          errors={roleErrors}
-          onEdit={handleEdit}
-          onCancel={handleCancel}
-          onSave={handleSaveRole}
-        />
       </div>
 
       {isEditing ? (
@@ -260,19 +265,19 @@ export function ProfileManagement({
           }}
         />
       ) : (
-        <div className="space-y-6">
-          <div className="p-6 bg-gradient-to-r from-card/50 to-card/30 rounded-xl border border-border/50">
-            <p className="text-lg font-semibold text-muted-foreground mb-4">Current Role</p>
-            <div className="flex items-center gap-4">
+        <div className={SPACING.form.betweenFields}>
+            <div className={cn(PADDING.container.medium, BACKGROUNDS.card.subtle, BORDER_RADIUS.default, BORDERS.default)}>
+              <p className={cn(TYPOGRAPHY.heading.card, "text-muted-foreground mb-4")}>Current Role</p>
+              <div className="flex items-center gap-4">
               {user.role && currentRole && (
                 <>
-                  <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
+                  <div className={cn("w-12 h-12 bg-primary/10 flex items-center justify-center", BORDER_RADIUS.default)}>
                     <currentRole.icon className="h-6 w-6 text-primary" />
                   </div>
                   <div>
-                    <span className="text-xl font-bold text-foreground">{currentRole.title}</span>
+                    <span className="text-lg font-bold text-foreground">{currentRole.title}</span>
                     {currentRole && (
-                      <p className="text-muted-foreground mt-1">{currentRole.description}</p>
+                      <p className={cn(TYPOGRAPHY.body.muted, "mt-1")}>{currentRole.description}</p>
                     )}
                   </div>
                 </>
@@ -286,11 +291,11 @@ export function ProfileManagement({
             const data = user.roleData || {}
 
             const asPairs = (pairs: Array<[string, string]>) => (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+              <div className={cn("grid grid-cols-1 md:grid-cols-2 mt-4", SPACING.grid.formFields)}>
                 {pairs.map(([label, value]) => (
-                  <div key={label} className="p-4 bg-muted/30 rounded-lg border border-border/50">
-                    <p className="text-sm font-semibold text-muted-foreground mb-2">{label}</p>
-                    <p className="text-base text-foreground">{value ?? 'Not specified'}</p>
+                  <div key={label} className={cn(PADDING.card, BACKGROUNDS.muted.light, BORDER_RADIUS.default, BORDERS.default)}>
+                    <p className={cn(TYPOGRAPHY.heading.card, "text-muted-foreground mb-2")}>{label}</p>
+                    <p className={TYPOGRAPHY.body.default}>{value ?? 'Not specified'}</p>
                   </div>
                 ))}
               </div>
@@ -298,8 +303,8 @@ export function ProfileManagement({
 
             if (roleName === 'teacher') {
               return (
-                <div className="p-6 bg-gradient-to-r from-muted/30 to-muted/10 rounded-xl border border-border/50">
-                  <p className="text-lg font-semibold text-muted-foreground mb-4">Teacher Details</p>
+                <div className={cn(PADDING.container.medium, BACKGROUNDS.muted.subtle, BORDER_RADIUS.default, BORDERS.default)}>
+                  <p className={cn(TYPOGRAPHY.heading.card, "text-muted-foreground mb-4")}>Teacher Details</p>
                   {asPairs([
                     ['Courses Taught', data.courses || data.coursesTaught],
                     ['Subjects', data.subjects],
@@ -311,8 +316,8 @@ export function ProfileManagement({
 
             if (roleName === 'student') {
               return (
-                <div className="p-6 bg-gradient-to-r from-muted/30 to-muted/10 rounded-xl border border-border/50">
-                  <p className="text-lg font-semibold text-muted-foreground mb-4">Student Details</p>
+                <div className={cn(PADDING.container.medium, BACKGROUNDS.muted.subtle, BORDER_RADIUS.default, BORDERS.default)}>
+                  <p className={cn(TYPOGRAPHY.heading.card, "text-muted-foreground mb-4")}>Student Details</p>
                   {asPairs([
                     ['Courses Enrolled', data.enrolled_courses || data.coursesEnrolled],
                     ['Grade / Year', data.grade || data.year],
@@ -324,8 +329,8 @@ export function ProfileManagement({
 
             if (roleName === 'organization_admin') {
               return (
-                <div className="p-6 bg-gradient-to-r from-muted/30 to-muted/10 rounded-xl border border-border/50">
-                  <p className="text-lg font-semibold text-muted-foreground mb-4">Organization Admin Details</p>
+                <div className={cn(PADDING.container.medium, BACKGROUNDS.muted.subtle, BORDER_RADIUS.default, BORDERS.default)}>
+                  <p className={cn(TYPOGRAPHY.heading.card, "text-muted-foreground mb-4")}>Organization Admin Details</p>
                   {asPairs([
                     ['Organization', data.org_name],
                     ['Departments', data.departments],
@@ -336,8 +341,8 @@ export function ProfileManagement({
 
             if (roleName === 'super_admin') {
               return (
-                <div className="p-6 bg-gradient-to-r from-muted/30 to-muted/10 rounded-xl border border-border/50">
-                  <p className="text-lg font-semibold text-muted-foreground mb-4">Super Admin Details</p>
+                <div className={cn(PADDING.container.medium, BACKGROUNDS.muted.subtle, BORDER_RADIUS.default, BORDERS.default)}>
+                  <p className={cn(TYPOGRAPHY.heading.card, "text-muted-foreground mb-4")}>Super Admin Details</p>
                   {asPairs([
                     ['Scope', 'Global'],
                   ])}
@@ -350,8 +355,8 @@ export function ProfileManagement({
 
           {/* Role switching inside Profile - preserve existing style but move control here */}
           {roles && roles.length > 0 && (
-            <div className="p-6 bg-gradient-to-r from-muted/30 to-muted/10 rounded-xl border border-border/50">
-              <p className="text-lg font-semibold text-muted-foreground mb-4">Switch Role</p>
+            <div className={cn(PADDING.container.medium, BACKGROUNDS.muted.subtle, BORDER_RADIUS.default, BORDERS.default)}>
+              <p className={cn(TYPOGRAPHY.heading.card, "text-muted-foreground mb-4")}>Switch Role</p>
               <RoleSwitcher
                 roles={roles}
                 activeRole={activeRole || user.role}
@@ -361,15 +366,15 @@ export function ProfileManagement({
           )}
 
           {user.roleData && Object.keys(user.roleData).length > 0 && (
-            <div className="p-6 bg-gradient-to-r from-muted/30 to-muted/10 rounded-xl border border-border/50">
-              <p className="text-lg font-semibold text-muted-foreground mb-4">Role Details</p>
-              <div className="space-y-3">
+            <div className={cn(PADDING.container.medium, BACKGROUNDS.muted.subtle, BORDER_RADIUS.default, BORDERS.default)}>
+              <p className={cn(TYPOGRAPHY.heading.card, "text-muted-foreground mb-4")}>Role Details</p>
+              <div className={SPACING.flex.default}>
                 {Object.entries(user.roleData).map(([key, value]) => (
-                  <div key={key} className="flex justify-between items-center p-3 bg-muted/50 rounded-lg">
-                    <span className="text-sm font-medium text-muted-foreground capitalize">
+                  <div key={key} className={cn("flex justify-between items-center bg-muted/50", PADDING.card, BORDER_RADIUS.default)}>
+                    <span className={cn(TYPOGRAPHY.label.default, "text-muted-foreground capitalize")}>
                       {key.replace(/([A-Z])/g, ' $1').trim()}:
                     </span>
-                    <span className="text-sm font-semibold text-foreground">{String(value)}</span>
+                    <span className={cn(TYPOGRAPHY.label.default, "font-semibold text-foreground")}>{String(value)}</span>
                   </div>
                 ))}
               </div>
@@ -383,45 +388,45 @@ export function ProfileManagement({
   return (
     <div className={cn("fixed inset-0 z-50 bg-background/90 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in", className)}>
       <GlassCard className="w-full max-w-6xl max-h-[95vh] overflow-hidden flex flex-col shadow-2xl animate-scale-in">
-        <div className="flex items-center justify-between p-8 border-b border-border/50 bg-gradient-to-r from-card/50 to-card/30">
+        <div className={cn("flex items-center justify-between border-b border-border/50", PADDING.modalHeader, BACKGROUNDS.card.subtle)}>
           <div>
-            <h2 className="text-3xl font-bold bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
+            <h2 className={cn(TYPOGRAPHY.heading.page, "text-foreground")}>
               Profile Management
             </h2>
-            <p className="text-muted-foreground mt-1">Manage your personal information and role settings</p>
+            <p className={cn(TYPOGRAPHY.body.muted, "mt-1")}>Manage your personal information and role settings</p>
           </div>
           <Button 
             variant="ghost" 
             size="sm" 
             onClick={onClose}
-            className="hover:bg-muted/50 transition-all duration-200 hover:scale-105"
+            className="hover:bg-muted/50 transition-colors"
           >
             <X className="h-5 w-5" />
           </Button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-8 pb-10">
+        <div className={cn("flex-1 overflow-y-auto", PADDING.modalContent)}>
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-8 bg-muted/30 p-1 rounded-xl">
+            <TabsList className={cn("grid w-full grid-cols-2 mb-6 bg-muted/30 p-1", BORDER_RADIUS.default)}>
               <TabsTrigger 
                 value="basic-info" 
-                className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all duration-200 rounded-lg"
+                className={cn("data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-colors", BORDER_RADIUS.default)}
               >
                 Basic Info
               </TabsTrigger>
               <TabsTrigger 
                 value="role-management"
-                className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-all duration-200 rounded-lg"
+                className={cn("data-[state=active]:bg-primary data-[state=active]:text-primary-foreground transition-colors", BORDER_RADIUS.default)}
               >
                 Role Management
               </TabsTrigger>
             </TabsList>
             
-            <TabsContent value="basic-info" className="space-y-8 animate-fade-in">
+            <TabsContent value="basic-info" className="animate-fade-in">
               {renderBasicInfo()}
             </TabsContent>
             
-            <TabsContent value="role-management" className="space-y-8 animate-fade-in">
+            <TabsContent value="role-management" className="animate-fade-in">
               {renderRoleManagement()}
             </TabsContent>
           </Tabs>

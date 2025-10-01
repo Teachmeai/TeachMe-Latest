@@ -6,11 +6,12 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
-import { ROLES, getRoleById } from "@/config/roles"
+import { getRoleById } from "@/config/roles"
 import { ValidationErrors } from "@/types"
 import { cn } from "@/lib/utils"
 import { backend } from "@/lib/backend"
 import { useToast } from "@/hooks/use-toast"
+import { SPACING, PADDING, TYPOGRAPHY, BACKGROUNDS, BORDER_RADIUS } from "@/config/design-tokens"
 
 interface RoleManagementFormProps {
   selectedRole: string
@@ -54,7 +55,7 @@ export function RoleManagementForm({
           variant: "destructive"
         })
       }
-    } catch (error) {
+    } catch {
       toast({
         title: "Error",
         description: "Failed to assign role. Please try again.",
@@ -76,18 +77,18 @@ export function RoleManagementForm({
   const showGlobalRoleSection = showStudentOption || showTeacherOption
 
   return (
-    <div className={cn("space-y-6", className)}>
+    <div className={cn(SPACING.form.betweenSections, className)}>
       {/* Global Role Assignment Section */}
       {showGlobalRoleSection && (
-        <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <h4 className="font-medium text-blue-900 mb-2">Global Role Options</h4>
-          <p className="text-sm text-blue-700 mb-4">
+        <div className={cn(PADDING.container.small, "bg-blue-50 border border-blue-200", BORDER_RADIUS.default)}>
+          <h4 className={cn(TYPOGRAPHY.heading.card, "text-blue-900 mb-2")}>Global Role Options</h4>
+          <p className={cn(TYPOGRAPHY.body.small, "text-blue-700 mb-4")}>
             {!hasGlobalRole 
               ? "You don't have a global role yet. Choose to become a global student or teacher to access platform features."
               : "You can add additional global roles to expand your platform access."
             }
           </p>
-          <div className="flex gap-2">
+          <div className={cn("flex", SPACING.flex.tight)}>
             {showStudentOption && (
               <Button
                 size="sm"
@@ -116,20 +117,20 @@ export function RoleManagementForm({
 
       {/* Role Description */}
       {currentRole && (
-        <div className="p-4 bg-muted/50 rounded-lg">
-          <h4 className="font-medium text-sm mb-2">{currentRole.title}</h4>
-          <p className="text-sm text-muted-foreground">{currentRole.description}</p>
+        <div className={cn(PADDING.container.small, BACKGROUNDS.muted.medium, BORDER_RADIUS.default)}>
+          <h4 className={cn(TYPOGRAPHY.heading.card, "mb-2")}>{currentRole.title}</h4>
+          <p className={TYPOGRAPHY.body.muted}>{currentRole.description}</p>
         </div>
       )}
 
       {/* Role-specific Fields */}
       {currentRole && (
-        <div className="space-y-4">
-          <h4 className="text-sm font-medium">Role-specific Information</h4>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className={SPACING.form.betweenFields}>
+          <h4 className={TYPOGRAPHY.label.default}>Role-specific Information</h4>
+          <div className={cn("grid grid-cols-1 md:grid-cols-2", SPACING.grid.formFields)}>
             {currentRole.fields.map((field) => (
-              <div key={field.name} className="space-y-2">
-                <Label htmlFor={field.name}>
+              <div key={field.name} className={SPACING.form.betweenLabelAndInput}>
+                <Label htmlFor={field.name} className={TYPOGRAPHY.label.default}>
                   {field.label} {field.required && '*'}
                 </Label>
                 
@@ -170,7 +171,7 @@ export function RoleManagementForm({
                 )}
                 
                 {errors[field.name] && (
-                  <p className="text-sm text-destructive">{errors[field.name]}</p>
+                  <p className={cn(TYPOGRAPHY.body.small, "text-destructive")}>{errors[field.name]}</p>
                 )}
               </div>
             ))}

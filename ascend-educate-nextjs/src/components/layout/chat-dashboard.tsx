@@ -510,7 +510,7 @@ export function ChatDashboard({ user, onLogout, onSendMessage, onProfileUpdate, 
                 <DropdownMenuSeparator />
                 
                 <DropdownMenuItem 
-                  className="cursor-pointer"
+                  className="cursor-pointer focus:bg-primary/10 focus:text-primary hover:bg-primary/10 hover:text-primary transition-colors"
                   onClick={() => setShowProfileManagement(true)}
                 >
                   <User className="mr-2 h-4 w-4" />

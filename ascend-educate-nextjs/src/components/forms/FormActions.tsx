@@ -5,6 +5,7 @@ import { Save, X, CheckCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ValidationErrors } from "@/types"
 import { cn } from "@/lib/utils"
+import { SPACING, PADDING, BORDER_RADIUS } from "@/config/design-tokens"
 
 interface FormActionsProps {
   isEditing: boolean
@@ -40,11 +41,11 @@ export function FormActions({
   }
 
   return (
-    <div className={cn("space-y-4", className)}>
+    <div className={cn(SPACING.form.betweenFields, className)}>
       {/* Success Display */}
       {saveSuccess && !hasErrors && (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-          <div className="flex items-center gap-2">
+        <div className={cn("bg-green-50 border border-green-200", BORDER_RADIUS.default, PADDING.container.small)}>
+          <div className={cn("flex items-center", SPACING.flex.tight)}>
             <CheckCircle className="h-4 w-4 text-green-600" />
             <h4 className="text-sm font-medium text-green-800">
               Changes saved successfully!
@@ -58,7 +59,7 @@ export function FormActions({
 
       {/* Error Display */}
       {hasErrors && (
-        <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3">
+        <div className={cn("bg-destructive/10 border border-destructive/20", BORDER_RADIUS.default, PADDING.container.small)}>
           <h4 className="text-sm font-medium text-destructive mb-2">
             Please fix the following errors:
           </h4>
@@ -76,7 +77,7 @@ export function FormActions({
       )}
 
       {/* Action Buttons */}
-      <div className="flex justify-end gap-2">
+      <div className={cn("flex justify-end", SPACING.flex.default)}>
         <Button variant="outline" onClick={onCancel} disabled={isSaving}>
           <X className="h-4 w-4 mr-2" />
           Cancel
