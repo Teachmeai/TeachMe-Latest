@@ -108,9 +108,9 @@ export const BACKGROUNDS = {
 } as const
 
 export const BORDERS = {
-  default: 'border border-border/40',     // Standard border
-  subtle: 'border border-border/30',      // More subtle
-  prominent: 'border border-border/50',   // More visible
+  default: 'border border-border/30',     // Standard border (subtle and professional)
+  subtle: 'border border-border/20',      // Very subtle
+  prominent: 'border border-border/40',   // More visible (for emphasis)
 } as const
 
 export const TRANSITIONS = {

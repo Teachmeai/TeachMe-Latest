@@ -1,14 +1,14 @@
 "use client"
 
 import * as React from "react"
-import { useState, useMemo } from "react"
+import { useState } from "react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { ProfilePictureUpload } from "./ProfilePictureUpload"
 import { FormData, ValidationErrors } from "@/types"
 import { cn } from "@/lib/utils"
-import { SPACING, PADDING, TYPOGRAPHY, BACKGROUNDS, BORDERS, BORDER_RADIUS } from "@/config/design-tokens"
+import { SPACING, PADDING, TYPOGRAPHY, BACKGROUNDS, BORDER_RADIUS } from "@/config/design-tokens"
 
 interface BasicInfoFormProps {
   formData: FormData
@@ -44,13 +44,6 @@ export function BasicInfoForm({
       return 'website'
     }
   }
-
-  const currentLinks = useMemo(() => [
-    { label: 'LinkedIn', key: 'linkedin', value: formData.linkedin },
-    { label: 'Twitter', key: 'twitter', value: formData.twitter },
-    { label: 'GitHub', key: 'github', value: formData.github },
-    { label: 'Website', key: 'website', value: formData.website },
-  ], [formData.linkedin, formData.twitter, formData.github, formData.website])
 
   const handleSocialLinkSubmit = () => {
     if (!socialLink.trim()) return
@@ -186,7 +179,7 @@ export function BasicInfoForm({
       </div>
 
       {/* Social Media Links (Smart input) */}
-      <div className={cn(SPACING.form.betweenFields, PADDING.container.medium, BACKGROUNDS.muted.subtle, BORDER_RADIUS.default, BORDERS.default)}>
+      <div className={cn(SPACING.form.betweenFields, PADDING.container.medium, BACKGROUNDS.muted.subtle, BORDER_RADIUS.default)}>
         <h4 className={TYPOGRAPHY.heading.subsection}>Social Media Links</h4>
         <div className={SPACING.form.betweenFields}>
           <div className={SPACING.form.betweenLabelAndInput}>
@@ -209,7 +202,7 @@ export function BasicInfoForm({
                 Add
               </button>
             </div>
-            <p className={TYPOGRAPHY.body.muted}>We'll detect the platform and place it in the right field.</p>
+            <p className={TYPOGRAPHY.body.muted}>We&apos;ll detect the platform and place it in the right field.</p>
           </div>
 
           <div className={SPACING.form.betweenLabelAndInput}>

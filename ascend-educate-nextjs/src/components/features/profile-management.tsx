@@ -104,27 +104,29 @@ export function ProfileManagement({
 
   const renderBasicInfo = () => (
     <div className={SPACING.form.betweenSections}>
-      <div className={cn(PADDING.sectionHeader, BACKGROUNDS.muted.subtle, BORDER_RADIUS.default, BORDERS.default)}>
-        <div className="flex items-center justify-between">
-          <div>
+      <div className="space-y-4">
+        <div className="pb-4 border-b border-border/20">
+          <div className="flex items-center gap-3 mb-1">
             <h3 className={cn(TYPOGRAPHY.heading.section, "text-foreground")}>
               Basic Information
-              {isEditing && (
-                <span className={cn("ml-3 text-primary font-medium bg-primary/10 px-2 py-1", BORDER_RADIUS.full, TYPOGRAPHY.body.small)}>(Editing)</span>
-              )}
             </h3>
-            <p className={cn(TYPOGRAPHY.body.muted, "mt-1")}>Manage your personal details and contact information</p>
+            {isEditing && (
+              <span className={cn("text-primary font-medium bg-primary/10 px-2.5 py-1", BORDER_RADIUS.full, TYPOGRAPHY.body.small)}>
+                Editing
+              </span>
+            )}
           </div>
-          <FormActions
-            isEditing={isEditing}
-            isSaving={isSaving}
-            saveSuccess={saveSuccess}
-            errors={basicErrors}
-            onEdit={handleEdit}
-            onCancel={handleCancel}
-            onSave={handleSaveBasic}
-          />
+          <p className={TYPOGRAPHY.body.muted}>Manage your personal details and contact information</p>
         </div>
+        <FormActions
+          isEditing={isEditing}
+          isSaving={isSaving}
+          saveSuccess={saveSuccess}
+          errors={basicErrors}
+          onEdit={handleEdit}
+          onCancel={handleCancel}
+          onSave={handleSaveBasic}
+        />
       </div>
 
       {isEditing ? (
@@ -156,16 +158,16 @@ export function ProfileManagement({
           <div className={cn("grid grid-cols-1 md:grid-cols-2", SPACING.grid.cards)}>
             <div className={cn(PADDING.card, BACKGROUNDS.muted.light, BORDER_RADIUS.default, BORDERS.default)}>
               <p className={cn(TYPOGRAPHY.heading.card, "text-muted-foreground mb-2")}>Address</p>
-              <p className={TYPOGRAPHY.body.default}>{profile ? [profile.address, profile.city, profile.state, profile.country].filter(Boolean).join(", ") : 'Not specified'}</p>
+              <p className={cn(TYPOGRAPHY.body.default, "leading-relaxed break-words")}>{profile ? [profile.address, profile.city, profile.state, profile.country].filter(Boolean).join(", ") : 'Not specified'}</p>  
             </div>
             <div className={cn(PADDING.card, BACKGROUNDS.muted.light, BORDER_RADIUS.default, BORDERS.default)}>
               <p className={cn(TYPOGRAPHY.heading.card, "text-muted-foreground mb-2")}>Phone</p>
-              <p className={TYPOGRAPHY.body.default}>{profile?.phone || 'Not specified'}</p>
+              <p className={cn(TYPOGRAPHY.body.default, "leading-relaxed")}>{profile?.phone || 'Not specified'}</p>
             </div>
           </div>
 
           {(profile?.linkedin_url || profile?.twitter_url || profile?.github_url || profile?.website) && (
-            <div className={cn(PADDING.container.medium, BACKGROUNDS.muted.subtle, BORDER_RADIUS.default, BORDERS.default)}>
+            <div className={cn(PADDING.container.medium, BACKGROUNDS.muted.subtle, BORDER_RADIUS.default)}>
               <p className={cn(TYPOGRAPHY.heading.card, "text-muted-foreground mb-4")}>Social Media</p>
               <div className={cn("flex flex-wrap", SPACING.flex.tight)}>
                 {profile?.linkedin_url && (
@@ -222,27 +224,29 @@ export function ProfileManagement({
 
   const renderRoleManagement = () => (
     <div className={SPACING.form.betweenSections}>
-      <div className={cn(PADDING.sectionHeader, BACKGROUNDS.muted.subtle, BORDER_RADIUS.default, BORDERS.default)}>
-        <div className="flex items-center justify-between">
-          <div>
+      <div className="space-y-4">
+        <div className="pb-4 border-b border-border/20">
+          <div className="flex items-center gap-3 mb-1">
             <h3 className={cn(TYPOGRAPHY.heading.section, "text-foreground")}>
               Role Management
-              {isEditing && (
-                <span className={cn("ml-3 text-primary font-medium bg-primary/10 px-2 py-1", BORDER_RADIUS.full, TYPOGRAPHY.body.small)}>(Editing)</span>
-              )}
             </h3>
-            <p className={cn(TYPOGRAPHY.body.muted, "mt-1")}>Configure your roles and permissions within the platform</p>
+            {isEditing && (
+              <span className={cn("text-primary font-medium bg-primary/10 px-2.5 py-1", BORDER_RADIUS.full, TYPOGRAPHY.body.small)}>
+                Editing
+              </span>
+            )}
           </div>
-          <FormActions
-            isEditing={isEditing}
-            isSaving={isSaving}
-            saveSuccess={saveSuccess}
-            errors={roleErrors}
-            onEdit={handleEdit}
-            onCancel={handleCancel}
-            onSave={handleSaveRole}
-          />
+          <p className={TYPOGRAPHY.body.muted}>Configure your roles and permissions within the platform</p>
         </div>
+        <FormActions
+          isEditing={isEditing}
+          isSaving={isSaving}
+          saveSuccess={saveSuccess}
+          errors={roleErrors}
+          onEdit={handleEdit}
+          onCancel={handleCancel}
+          onSave={handleSaveRole}
+        />
       </div>
 
       {isEditing ? (
@@ -275,9 +279,9 @@ export function ProfileManagement({
                     <currentRole.icon className="h-6 w-6 text-primary" />
                   </div>
                   <div>
-                    <span className="text-lg font-bold text-foreground">{currentRole.title}</span>
+                    <h4 className="text-lg font-bold text-foreground leading-tight">{currentRole.title}</h4>
                     {currentRole && (
-                      <p className={cn(TYPOGRAPHY.body.muted, "mt-1")}>{currentRole.description}</p>
+                      <p className={cn(TYPOGRAPHY.body.muted, "mt-1.5 leading-relaxed")}>{currentRole.description}</p>
                     )}
                   </div>
                 </>
@@ -295,7 +299,7 @@ export function ProfileManagement({
                 {pairs.map(([label, value]) => (
                   <div key={label} className={cn(PADDING.card, BACKGROUNDS.muted.light, BORDER_RADIUS.default, BORDERS.default)}>
                     <p className={cn(TYPOGRAPHY.heading.card, "text-muted-foreground mb-2")}>{label}</p>
-                    <p className={TYPOGRAPHY.body.default}>{value ?? 'Not specified'}</p>
+                    <p className={cn(TYPOGRAPHY.body.default, "leading-relaxed break-words")}>{value ?? 'Not specified'}</p>
                   </div>
                 ))}
               </div>
@@ -303,7 +307,7 @@ export function ProfileManagement({
 
             if (roleName === 'teacher') {
               return (
-                <div className={cn(PADDING.container.medium, BACKGROUNDS.muted.subtle, BORDER_RADIUS.default, BORDERS.default)}>
+                <div className={cn(PADDING.container.medium, BACKGROUNDS.muted.subtle, BORDER_RADIUS.default)}>
                   <p className={cn(TYPOGRAPHY.heading.card, "text-muted-foreground mb-4")}>Teacher Details</p>
                   {asPairs([
                     ['Courses Taught', data.courses || data.coursesTaught],
@@ -316,7 +320,7 @@ export function ProfileManagement({
 
             if (roleName === 'student') {
               return (
-                <div className={cn(PADDING.container.medium, BACKGROUNDS.muted.subtle, BORDER_RADIUS.default, BORDERS.default)}>
+                <div className={cn(PADDING.container.medium, BACKGROUNDS.muted.subtle, BORDER_RADIUS.default)}>
                   <p className={cn(TYPOGRAPHY.heading.card, "text-muted-foreground mb-4")}>Student Details</p>
                   {asPairs([
                     ['Courses Enrolled', data.enrolled_courses || data.coursesEnrolled],
@@ -329,7 +333,7 @@ export function ProfileManagement({
 
             if (roleName === 'organization_admin') {
               return (
-                <div className={cn(PADDING.container.medium, BACKGROUNDS.muted.subtle, BORDER_RADIUS.default, BORDERS.default)}>
+                <div className={cn(PADDING.container.medium, BACKGROUNDS.muted.subtle, BORDER_RADIUS.default)}>
                   <p className={cn(TYPOGRAPHY.heading.card, "text-muted-foreground mb-4")}>Organization Admin Details</p>
                   {asPairs([
                     ['Organization', data.org_name],
@@ -341,7 +345,7 @@ export function ProfileManagement({
 
             if (roleName === 'super_admin') {
               return (
-                <div className={cn(PADDING.container.medium, BACKGROUNDS.muted.subtle, BORDER_RADIUS.default, BORDERS.default)}>
+                <div className={cn(PADDING.container.medium, BACKGROUNDS.muted.subtle, BORDER_RADIUS.default)}>
                   <p className={cn(TYPOGRAPHY.heading.card, "text-muted-foreground mb-4")}>Super Admin Details</p>
                   {asPairs([
                     ['Scope', 'Global'],
@@ -355,7 +359,7 @@ export function ProfileManagement({
 
           {/* Role switching inside Profile - preserve existing style but move control here */}
           {roles && roles.length > 0 && (
-            <div className={cn(PADDING.container.medium, BACKGROUNDS.muted.subtle, BORDER_RADIUS.default, BORDERS.default)}>
+            <div className={cn(PADDING.container.medium, BACKGROUNDS.muted.subtle, BORDER_RADIUS.default)}>
               <p className={cn(TYPOGRAPHY.heading.card, "text-muted-foreground mb-4")}>Switch Role</p>
               <RoleSwitcher
                 roles={roles}
@@ -366,15 +370,15 @@ export function ProfileManagement({
           )}
 
           {user.roleData && Object.keys(user.roleData).length > 0 && (
-            <div className={cn(PADDING.container.medium, BACKGROUNDS.muted.subtle, BORDER_RADIUS.default, BORDERS.default)}>
+            <div className={cn(PADDING.container.medium, BACKGROUNDS.muted.subtle, BORDER_RADIUS.default)}>
               <p className={cn(TYPOGRAPHY.heading.card, "text-muted-foreground mb-4")}>Role Details</p>
-              <div className={SPACING.flex.default}>
+              <div className="space-y-2">
                 {Object.entries(user.roleData).map(([key, value]) => (
-                  <div key={key} className={cn("flex justify-between items-center bg-muted/50", PADDING.card, BORDER_RADIUS.default)}>
-                    <span className={cn(TYPOGRAPHY.label.default, "text-muted-foreground capitalize")}>
+                  <div key={key} className={cn("flex justify-between items-center gap-4 bg-muted/50", PADDING.card, BORDER_RADIUS.default)}>
+                    <span className={cn(TYPOGRAPHY.label.default, "text-muted-foreground capitalize flex-shrink-0")}>
                       {key.replace(/([A-Z])/g, ' $1').trim()}:
                     </span>
-                    <span className={cn(TYPOGRAPHY.label.default, "font-semibold text-foreground")}>{String(value)}</span>
+                    <span className={cn(TYPOGRAPHY.label.default, "font-semibold text-foreground text-right break-words")}>{String(value)}</span>
                   </div>
                 ))}
               </div>

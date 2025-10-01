@@ -237,17 +237,39 @@ export const useProfileForm = ({ initialUser, onProfileUpdate, activeRole, initi
 
   const handleFieldChange = useCallback((field: keyof FormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
+    
+    // Clear the specific field error immediately when value changes
     if (basicErrors[field]) {
-      setBasicErrors(prev => ({ ...prev, [field]: '' }))
+      setBasicErrors(prev => {
+        const newErrors = { ...prev }
+        delete newErrors[field]
+        return newErrors
+      })
     }
-  }, [basicErrors])
+    
+    // Re-validate all basic fields to ensure form state is accurate
+    const updatedFormData = { ...formData, [field]: value }
+    const newValidationErrors = validateBasicFields(updatedFormData)
+    setBasicErrors(newValidationErrors)
+  }, [basicErrors, formData])
 
   const handleRoleFieldChange = useCallback((field: string, value: string) => {
     setRoleData(prev => ({ ...prev, [field]: value }))
+    
+    // Clear the specific field error immediately when value changes
     if (roleErrors[field]) {
-      setRoleErrors(prev => ({ ...prev, [field]: '' }))
+      setRoleErrors(prev => {
+        const newErrors = { ...prev }
+        delete newErrors[field]
+        return newErrors
+      })
     }
-  }, [roleErrors])
+    
+    // Re-validate all role fields to ensure form state is accurate
+    const updatedRoleData = { ...roleData, [field]: value }
+    const newValidationErrors = validateRoleFields(selectedRole, updatedRoleData)
+    setRoleErrors(newValidationErrors)
+  }, [roleErrors, roleData, selectedRole])
 
 
   return {
