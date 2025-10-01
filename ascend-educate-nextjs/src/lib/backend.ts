@@ -145,6 +145,13 @@ class BackendClient {
       body: JSON.stringify({ invite_id: inviteId })
     })
   }
+
+  async enrollByToken(token: string): Promise<BackendResponse<{ ok: boolean; enrolled: boolean; already?: boolean }>> {
+    return this.request('/courses/enroll-by-token', {
+      method: 'POST',
+      body: JSON.stringify({ token })
+    })
+  }
 }
 
 export const backend = new BackendClient()
