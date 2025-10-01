@@ -56,8 +56,12 @@ async def get_user_roles(user_id: str) -> List[RoleEntry]:
 
 async def get_profile_active_role(user_id: str) -> str | None:
     supabase = get_supabase_admin()
-    resp = supabase.table("profiles").select("active_role").eq("id", user_id).single().execute()
-    return (resp.data or {}).get("active_role") if resp.data else None
+    try:
+        resp = supabase.table("profiles").select("active_role").eq("id", user_id).single().execute()
+        return (resp.data or {}).get("active_role") if resp.data else None
+    except Exception:
+        # If no profile row exists, return None gracefully
+        return None
 
 
 async def set_profile_active_role(user_id: str, role: str) -> None:
@@ -79,6 +83,19 @@ async def build_session_payload(user_id: str, device_id: str | None = None) -> D
     # choose active role string for backward compatibility (e.g., "teacher")
     role_names = [r["role"] for r in roles]
     active_role = saved_role if saved_role in role_names else (role_names[0] if role_names else "student")
+
+    # determine active_org_id if applicable based on org roles
+    active_org_id: str | None = None
+    # If the active role exists in org scope, pick the first org with that role
+    for r in roles:
+        if r.get("scope") == "org" and r.get("role") == active_role:
+            active_org_id = r.get("org_id")
+            break
+    # If none matched the active role but there is exactly one org role, select its org_id for convenience
+    if not active_org_id:
+        org_roles = [r for r in roles if r.get("scope") == "org"]
+        if len(org_roles) == 1:
+            active_org_id = org_roles[0].get("org_id")
     
     log_user_operation("BUILD_SESSION", user_id, f"Selected active role: {active_role} (from saved: {saved_role}, available: {role_names})")
     
@@ -87,10 +104,22 @@ async def build_session_payload(user_id: str, device_id: str | None = None) -> D
         "roles": roles,
         "active_role": active_role,
     }
+    if active_org_id:
+        payload["active_org_id"] = active_org_id
     if device_id:
         payload["device_id"] = device_id
     
-    log_user_operation("BUILD_SESSION", user_id, "Session payload built successfully", {"active_role": active_role, "roles_count": len(roles), "has_device_id": bool(device_id)})
+    log_user_operation(
+        "BUILD_SESSION",
+        user_id,
+        "Session payload built successfully",
+        {
+            "active_role": active_role,
+            "active_org_id": active_org_id,
+            "roles_count": len(roles),
+            "has_device_id": bool(device_id),
+        },
+    )
     return payload
 
 

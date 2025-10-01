@@ -124,6 +124,27 @@ class BackendClient {
       body: JSON.stringify({ role }),
     })
   }
+
+  async acceptInvite(orgId: string): Promise<BackendResponse<{ ok: boolean; org_id: string; role: string }>> {
+    return this.request<{ ok: boolean; org_id: string; role: string }>(
+      '/organizations/invites/accept',
+      {
+        method: 'POST',
+        body: JSON.stringify({ org_id: orgId })
+      }
+    )
+  }
+
+  async getInvite(inviteId: string): Promise<BackendResponse<{ id: string; invitee_email: string; role: string; org_id: string; status: string; created_at: string }>> {
+    return this.request(`/organizations/invites/${inviteId}`)
+  }
+
+  async acceptInviteById(inviteId: string): Promise<BackendResponse<{ ok: boolean; org_id: string; role: string }>> {
+    return this.request('/organizations/invites/accept-by-id', {
+      method: 'POST',
+      body: JSON.stringify({ invite_id: inviteId })
+    })
+  }
 }
 
 export const backend = new BackendClient()

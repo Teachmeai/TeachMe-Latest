@@ -259,6 +259,17 @@ export function useAuth() {
     }
   }
 
+  const acceptInvite = async (orgId: string) => {
+    const response = await backend.acceptInvite(orgId)
+    if (response.ok) {
+      await fetchUserSession(true)
+      return true
+    } else {
+      console.error('Error accepting invite:', response.error)
+      return false
+    }
+  }
+
   const logout = async () => {
     if (isLoggingOut) {
       console.log('Logout already in progress, skipping...')
@@ -331,6 +342,7 @@ export function useAuth() {
     loading,
     deviceId,
     switchRole,
+    acceptInvite,
     logout,
     refreshSession: fetchUserSession
   }

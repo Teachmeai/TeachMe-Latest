@@ -1,12 +1,14 @@
 'use client'
 
 import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { supabase } from '../../../lib/supabase'
 import { backend } from '../../../lib/backend'
 
 export default function AuthCallback() {
   const router = useRouter()
+  const search = useSearchParams()
+  const nextUrl = search.get('next') || '/'
 
   useEffect(() => {
     const handleAuthCallback = async () => {
@@ -33,12 +35,12 @@ export default function AuthCallback() {
           } catch (e) {
             console.log('Callback prime /auth/me failed (will retry on home):', e)
           }
-          // Redirect to home
-          router.replace('/')
+          // Redirect to requested next url or home
+          router.replace(nextUrl)
         } else {
           console.log('No session found, redirecting to login')
           // No session, redirect to home (which will show login)
-          router.replace('/')
+          router.replace(nextUrl || '/')
         }
       } catch (error) {
         console.error('Unexpected error:', error)
