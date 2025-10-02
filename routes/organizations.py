@@ -127,44 +127,41 @@ class InviteTeacherRequest(BaseModel):
     invitee_email: EmailStr
 
 
-@router.post("/{org_id}/invites/teacher")
-async def invite_teacher(
-    org_id: str,
-    payload: InviteTeacherRequest = Body(..., embed=False),
-    user_id: str = Depends(get_user_id),
-):
-    # Only allows inviting role "teacher" by org admins (not super_admins)
-    supabase = get_supabase_admin()
-    session = await get_session(user_id) or await build_session_payload(user_id)
-    is_org_admin = _is_org_admin_for(supabase, user_id, org_id)
-    if not is_org_admin:
-        raise HTTPException(status_code=403, detail="Only org admin can invite teachers")
-
-    invitee_email = str(payload.invitee_email).lower()
-
-    now_iso = datetime.now(timezone.utc).isoformat()
-    try:
-        invite_resp = supabase.table("invites").insert({
-            "inviter": user_id,
-            "invitee_email": invitee_email,
-            "role": "teacher",
-            "org_id": org_id,
-            "status": "pending",
-            "created_at": now_iso,
-        }).execute()
-        invite = (invite_resp.data or [None])[0]
-        if not invite:
-            raise HTTPException(status_code=500, detail="Failed to create invite")
-        email_sent = False
-        try:
-            org_resp = supabase.table("organizations").select("name").eq("id", org_id).single().execute()
-            org_name = (org_resp.data or {}).get("name") or "Your Organization"
-            email_sent = await send_invite_email(str(invitee_email), org_name, invite.get("id"))
-        except Exception:
-            email_sent = False
-        return {"ok": True, "invite": invite, "email_sent": email_sent}
-    except Exception:
-        raise HTTPException(status_code=500, detail="Error creating invite")
+# COMMENTED OUT - handled by assistant tool internal function
+# @router.post("/{org_id}/invites/teacher")
+# async def invite_teacher(
+#     org_id: str,
+#     payload: InviteTeacherRequest = Body(..., embed=False),
+#     user_id: str = Depends(get_user_id),
+# ):
+#     supabase = get_supabase_admin()
+#     is_org_admin = _is_org_admin_for(supabase, user_id, org_id)
+#     if not is_org_admin:
+#         raise HTTPException(status_code=403, detail="Only org admin can invite teachers")
+#     invitee_email = str(payload.invitee_email).lower()
+#     now_iso = datetime.now(timezone.utc).isoformat()
+#     try:
+#         invite_resp = supabase.table("invites").insert({
+#             "inviter": user_id,
+#             "invitee_email": invitee_email,
+#             "role": "teacher",
+#             "org_id": org_id,
+#             "status": "pending",
+#             "created_at": now_iso,
+#         }).execute()
+#         invite = (invite_resp.data or [None])[0]
+#         if not invite:
+#             raise HTTPException(status_code=500, detail="Failed to create invite")
+#         email_sent = False
+#         try:
+#             org_resp = supabase.table("organizations").select("name").eq("id", org_id).single().execute()
+#             org_name = (org_resp.data or {}).get("name") or "Your Organization"
+#             email_sent = await send_invite_email(str(invitee_email), org_name, invite.get("id"))
+#         except Exception:
+#             email_sent = False
+#         return {"ok": True, "invite": invite, "email_sent": email_sent}
+#     except Exception:
+#         raise HTTPException(status_code=500, detail="Error creating invite")
 
 
 class AcceptInviteRequest(BaseModel):

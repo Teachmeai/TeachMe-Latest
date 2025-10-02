@@ -17,8 +17,8 @@ email_config = ConnectionConfig(
 
 fastmail = FastMail(email_config)
 
-async def send_invite_email(email: str, org_name: str, invite_id: str, frontend_url: str = "http://localhost:3000"):
-    """Send organization invite email"""
+async def send_invite_email(email: str, org_name: str, invite_id: str, role: str | None = None, frontend_url: str = "http://localhost:3000"):
+    """Send organization invite email. Role may be 'organization_admin' | 'teacher' | etc."""
     
     # Email service debug info (can be removed in production)
     # print(f"🔧 EMAIL SERVICE DEBUG: Starting send_invite_email")
@@ -26,6 +26,45 @@ async def send_invite_email(email: str, org_name: str, invite_id: str, frontend_
     # Create invite link
     invite_link = f"{frontend_url}/invites?invite_id={invite_id}"
     
+    # Human-readable role label
+    role_label = "Member"
+    if role:
+        if role == "organization_admin":
+            role_label = "Organization Administrator"
+        elif role == "teacher":
+            role_label = "Teacher"
+        elif role == "student":
+            role_label = "Student"
+        else:
+            role_label = role.replace("_", " ").title()
+
+    # Role-specific capability bullets (simple defaults)
+    role_points_html = ""
+    if role_label == "Organization Administrator":
+        role_points_html = """
+                <ul>
+                    <li>Manage your organization's settings</li>
+                    <li>Invite teachers and students</li>
+                    <li>Create and manage courses</li>
+                    <li>Monitor learning progress</li>
+                </ul>
+        """
+    elif role_label == "Teacher":
+        role_points_html = """
+                <ul>
+                    <li>Create and manage your courses</li>
+                    <li>Invite and support your students</li>
+                    <li>Track student progress within your classes</li>
+                </ul>
+        """
+    else:
+        role_points_html = """
+                <ul>
+                    <li>Access your TeachMe AI workspace</li>
+                    <li>Collaborate with your organization</li>
+                </ul>
+        """
+
     # Email template
     html_content = f"""
     <!DOCTYPE html>
@@ -52,15 +91,9 @@ async def send_invite_email(email: str, org_name: str, invite_id: str, frontend_
             <div class="content">
                 <h3>You've been invited to join an organization!</h3>
                 <p>Hello,</p>
-                <p>You have been invited to join <strong>{org_name}</strong> as an <strong>Organization Administrator</strong> on TeachMe AI.</p>
-                
-                <p>As an Organization Administrator, you will be able to:</p>
-                <ul>
-                    <li>Manage your organization's settings</li>
-                    <li>Invite teachers and students</li>
-                    <li>Create and manage courses</li>
-                    <li>Monitor learning progress</li>
-                </ul>
+                <p>You have been invited to join <strong>{org_name}</strong> as a <strong>{role_label}</strong> on TeachMe AI.</p>
+
+                {role_points_html}
                 
                 <p>Click the button below to accept or reject this invitation:</p>
                 
@@ -88,7 +121,7 @@ async def send_invite_email(email: str, org_name: str, invite_id: str, frontend_
     text_content = f"""
     Organization Invitation - TeachMe AI
     
-    You have been invited to join {org_name} as an Organization Administrator.
+    You have been invited to join {org_name} as a {role_label}.
     
     Click here to view your invitation: {invite_link}
     

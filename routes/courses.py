@@ -27,29 +27,28 @@ def _require_teacher_in_org(supabase, user_id: str, org_id: str):
         raise HTTPException(status_code=403, detail="Only teachers/org admins of this org can perform this action")
 
 
-@router.post("")
-async def create_course(payload: CreateCourseRequest, user_id: str = Depends(get_user_id)):
-    supabase = get_supabase_admin()
-    # Ensure caller has org teacher/admin membership
-    _require_teacher_in_org(supabase, user_id, payload.org_id)
-
-    now_iso = datetime.now(timezone.utc).isoformat()
-    try:
-        resp = supabase.table("courses").insert({
-            "org_id": payload.org_id,
-            "created_by": user_id,
-            "title": payload.title,
-            "description": payload.description,
-            "status": "draft",
-            "created_at": now_iso,
-            "updated_at": now_iso,
-        }).execute()
-        course = (resp.data or [None])[0]
-        if not course:
-            raise HTTPException(status_code=500, detail="Failed to create course")
-        return {"ok": True, "course": course}
-    except Exception:
-        raise HTTPException(status_code=500, detail="Error creating course")
+# COMMENTED OUT - handled by assistant tool internal function
+# @router.post("")
+# async def create_course(payload: CreateCourseRequest, user_id: str = Depends(get_user_id)):
+#     supabase = get_supabase_admin()
+#     _require_teacher_in_org(supabase, user_id, payload.org_id)
+#     now_iso = datetime.now(timezone.utc).isoformat()
+#     try:
+#         resp = supabase.table("courses").insert({
+#             "org_id": payload.org_id,
+#             "created_by": user_id,
+#             "title": payload.title,
+#             "description": payload.description,
+#             "status": "draft",
+#             "created_at": now_iso,
+#             "updated_at": now_iso,
+#         }).execute()
+#         course = (resp.data or [None])[0]
+#         if not course:
+#             raise HTTPException(status_code=500, detail="Failed to create course")
+#         return {"ok": True, "course": course}
+#     except Exception:
+#         raise HTTPException(status_code=500, detail="Error creating course")
 
 
 class GenerateInviteLinkRequest(BaseModel):
@@ -93,33 +92,26 @@ class SendCourseInviteEmailRequest(BaseModel):
     expires_in_minutes: int = 60
 
 
-@router.post("/{course_id}/invite-email")
-async def send_course_invite_email_endpoint(course_id: str, payload: SendCourseInviteEmailRequest, user_id: str = Depends(get_user_id)):
-    supabase = get_supabase_admin()
-    # load course
-    course_resp = supabase.table("courses").select("id,org_id,title").eq("id", course_id).single().execute()
-    course = course_resp.data
-    if not course:
-        raise HTTPException(status_code=404, detail="Course not found")
-
-    # teacher/admin in org check
-    _require_teacher_in_org(supabase, user_id, course.get("org_id"))
-
-    # generate token
-    token_resp = await generate_invite_link(GenerateInviteLinkRequest(course_id=course_id, expires_in_minutes=payload.expires_in_minutes), user_id)  # type: ignore
-    token = (token_resp or {}).get("token")
-    if not token:
-        raise HTTPException(status_code=500, detail="Failed to generate invite token")
-
-    # send email
-    try:
-        # fetch org name
-        org_resp = supabase.table("organizations").select("name").eq("id", course.get("org_id")).single().execute()
-        org_name = (org_resp.data or {}).get("name") or "Your Organization"
-        sent = await send_course_invite_email(str(payload.invitee_email).lower(), org_name, course.get("title") or "Course", token)
-        return {"ok": True, "email_sent": bool(sent)}
-    except Exception:
-        raise HTTPException(status_code=500, detail="Failed to send invite email")
+# COMMENTED OUT - now handled internally by assistant tool function
+# @router.post("/{course_id}/invite-email")
+# async def send_course_invite_email_endpoint(course_id: str, payload: SendCourseInviteEmailRequest, user_id: str = Depends(get_user_id)):
+#     supabase = get_supabase_admin()
+#     course_resp = supabase.table("courses").select("id,org_id,title").eq("id", course_id).single().execute()
+#     course = course_resp.data
+#     if not course:
+#         raise HTTPException(status_code=404, detail="Course not found")
+#     _require_teacher_in_org(supabase, user_id, course.get("org_id"))
+#     token_resp = await generate_invite_link(GenerateInviteLinkRequest(course_id=course_id, expires_in_minutes=payload.expires_in_minutes), user_id)  # type: ignore
+#     token = (token_resp or {}).get("token")
+#     if not token:
+#         raise HTTPException(status_code=500, detail="Failed to generate invite token")
+#     try:
+#         org_resp = supabase.table("organizations").select("name").eq("id", course.get("org_id")).single().execute()
+#         org_name = (org_resp.data or {}).get("name") or "Your Organization"
+#         sent = await send_course_invite_email(str(payload.invitee_email).lower(), org_name, course.get("title") or "Course", token)
+#         return {"ok": True, "email_sent": bool(sent)}
+#     except Exception:
+#         raise HTTPException(status_code=500, detail="Failed to send invite email")
 
 
 class EnrollByTokenRequest(BaseModel):

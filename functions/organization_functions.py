@@ -170,14 +170,14 @@ async def invite_organization_admin(user_id: str, org_id: str, invitee_email: st
                 logger.info(f"📧 ENV CHECK: MAIL_USERNAME={os.getenv('MAIL_USERNAME', 'NOT_SET')}")
                 logger.info(f"📧 ENV CHECK: MAIL_PASSWORD={'SET' if os.getenv('MAIL_PASSWORD') else 'NOT_SET'}")
                 logger.info(f"📧 ENV CHECK: MAIL_FROM={os.getenv('MAIL_FROM', 'NOT_SET')}")
-                
+
                 org_resp = supabase.table("organizations").select("name").eq("id", org_id).single().execute()
                 org_name = (org_resp.data or {}).get("name") or "Your Organization"
                 logger.info(f"📧 ORG NAME: {org_name}")
                 
                 # Try to send email and catch any specific errors
                 try:
-                    email_sent = await send_invite_email(str(invitee_email), org_name, invite.get("id"))
+                    email_sent = await send_invite_email(str(invitee_email), org_name, invite.get("id"), role)
                     logger.info(f"📧 EMAIL SEND RESULT: {email_sent} for invite {invite.get('id')}")
                 except Exception as email_error:
                     logger.error(f"❌ EMAIL SERVICE ERROR: {str(email_error)}")

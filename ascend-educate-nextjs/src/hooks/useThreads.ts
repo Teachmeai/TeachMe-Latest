@@ -5,6 +5,8 @@ export function useThreads(filter: { assistantId?: string; courseId?: string }) 
   const [threads, setThreads] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [updating, setUpdating] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const load = useCallback(async () => {
     if (!filter.assistantId) return; // Don't load if no assistant context
@@ -37,7 +39,29 @@ export function useThreads(filter: { assistantId?: string; courseId?: string }) 
     }
   }, [filter.assistantId, filter.courseId]);
 
+  const rename = useCallback(async (threadId: string, title: string) => {
+    setUpdating(true);
+    try {
+      // Try direct POST rename endpoint (backend exposes it)
+      await apiPost(`/assistant/chats/${threadId}/rename`, { title } as any);
+      setThreads((prev) => prev.map((t) => (t.id === threadId ? { ...t, title } : t)));
+    } finally {
+      setUpdating(false);
+    }
+  }, []);
+
+  const remove = useCallback(async (threadId: string) => {
+    setDeleting(true);
+    try {
+      // Try direct POST delete endpoint (backend exposes it)
+      await apiPost(`/assistant/chats/${threadId}/delete`, {} as any);
+      setThreads((prev) => prev.filter((t) => t.id !== threadId));
+    } finally {
+      setDeleting(false);
+    }
+  }, []);
+
   useEffect(() => { load(); }, [load]);
-  return { threads, loading, creating, reload: load, create };
+  return { threads, loading, creating, updating, deleting, reload: load, create, rename, remove };
 }
 

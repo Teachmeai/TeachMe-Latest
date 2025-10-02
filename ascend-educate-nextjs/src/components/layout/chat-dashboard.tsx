@@ -208,7 +208,7 @@ export function ChatDashboard({ user, onLogout, onSendMessage, onProfileUpdate, 
   const { assistant: resolvedAssistant } = useResolvedAssistant(isStudent ? undefined : userProfile.role, isStudent ? undefined : activeOrgId, undefined)
   const { assistant: courseAssistant } = useResolvedAssistant(undefined, undefined, selectedCourseId || undefined)
   const myCourses = useMyCourses()
-  const { threads, create, reload, loading: threadsLoading, creating: threadCreating } = useThreads({ assistantId: selectedAssistantId || resolvedAssistant?.id || courseAssistant?.id || undefined, courseId: selectedCourseId || undefined })
+  const { threads, create, reload, loading: threadsLoading, creating: threadCreating, rename, remove } = useThreads({ assistantId: selectedAssistantId || resolvedAssistant?.id || courseAssistant?.id || undefined, courseId: selectedCourseId || undefined })
 
   // Auto-create thread if profile is complete and no threads exist
   const [hasAutoCreated, setHasAutoCreated] = useState(() => {
@@ -298,11 +298,9 @@ export function ChatDashboard({ user, onLogout, onSendMessage, onProfileUpdate, 
 
   const handleDeleteChat = async (chatId: string) => {
     try {
-      await apiPost(`/assistant/chats/${chatId}/archive`)
-      await reload()
-    if (activeChat === chatId) {
-      setActiveChat(null)
-        // If this was the last thread, reset auto-creation flag
+      await remove(chatId)
+      if (activeChat === chatId) {
+        setActiveChat(null)
         if (threads.length <= 1) {
           setHasAutoCreated(false)
           localStorage.removeItem('hasAutoCreatedThread')
@@ -310,6 +308,17 @@ export function ChatDashboard({ user, onLogout, onSendMessage, onProfileUpdate, 
       }
     } catch (error) {
       console.error("Failed to delete chat:", error)
+    }
+  }
+
+  const handleRenameChat = async (chatId: string) => {
+    try {
+      const current = chatSessions.find(c => c.id === chatId)?.title || ''
+      const title = window.prompt('Rename chat', current)
+      if (!title) return
+      await rename(chatId, title)
+    } catch (error) {
+      console.error("Failed to rename chat:", error)
     }
   }
 
@@ -549,10 +558,7 @@ export function ChatDashboard({ user, onLogout, onSendMessage, onProfileUpdate, 
                       variant="ghost"
                       size="sm"
                       className="h-7 w-7 p-0 hover:bg-primary/10 hover:text-primary transition-all duration-200 hover:scale-110"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        // Edit chat title functionality
-                      }}
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleRenameChat(chat.id) }}
                       title="Edit conversation"
                     >
                       <Edit className="h-3.5 w-3.5" />
@@ -561,10 +567,7 @@ export function ChatDashboard({ user, onLogout, onSendMessage, onProfileUpdate, 
                       variant="ghost"
                       size="sm"
                       className="h-7 w-7 p-0 hover:bg-destructive/10 hover:text-destructive transition-all duration-200 hover:scale-110"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleDeleteChat(chat.id)
-                      }}
+                      onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDeleteChat(chat.id) }}
                       title="Delete conversation"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
