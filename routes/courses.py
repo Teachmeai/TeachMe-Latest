@@ -172,3 +172,36 @@ async def enroll_by_token(payload: EnrollByTokenRequest, user_id: str = Depends(
         raise HTTPException(status_code=500, detail="Failed to enroll user")
 
 
+
+class SetCourseAssistantRequest(BaseModel):
+    assistant_id: str
+
+
+@router.post("/{course_id}/assistant")
+async def set_course_assistant(course_id: str, payload: SetCourseAssistantRequest, user_id: str = Depends(get_user_id)):
+    supabase = get_supabase_admin()
+    # load course and check membership in org
+    course_resp = supabase.table("courses").select("id,org_id").eq("id", course_id).single().execute()
+    course = course_resp.data
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+    _require_teacher_in_org(supabase, user_id, course.get("org_id"))
+
+    # ensure assistant exists
+    a_resp = supabase.table("assistants").select("id").eq("id", payload.assistant_id).single().execute()
+    if not (a_resp.data or None):
+        raise HTTPException(status_code=404, detail="Assistant not found")
+
+    supabase.table("courses").update({"assistant_id": payload.assistant_id}).eq("id", course_id).execute()
+    return {"ok": True}
+
+
+@router.get("/my")
+async def my_courses(user_id: str = Depends(get_user_id)):
+    supabase = get_supabase_admin()
+    enr = supabase.table("enrollments").select("course_id").eq("user_id", user_id).execute().data or []
+    course_ids = [e.get("course_id") for e in enr]
+    if not course_ids:
+        return {"ok": True, "courses": []}
+    courses_resp = supabase.table("courses").select("id,org_id,title,description,status,assistant_id,created_at,updated_at").in_("id", course_ids).execute()
+    return {"ok": True, "courses": courses_resp.data or []}

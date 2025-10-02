@@ -6,6 +6,8 @@ from routes import auth
 from routes import profiles
 from routes import organizations
 from routes import courses
+from routes import assistants
+from routes import assistant_chats
 from core.supabase import init_supabase
 from core.redis_client import init_redis
 from middleware.cors import setup_cors
@@ -61,6 +63,9 @@ app.include_router(auth.router)
 app.include_router(profiles.router)
 app.include_router(organizations.router)
 app.include_router(courses.router)
+# assistants and chat routers
+app.include_router(assistants.router)
+app.include_router(assistant_chats.router)
 # Chat router disabled (switching to external HTTP agent)
 
 # Debug endpoint to check session status

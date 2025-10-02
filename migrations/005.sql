@@ -1,3 +1,39 @@
+-- Assistants registry and course linkage
+
+-- assistants table
+CREATE TABLE IF NOT EXISTS public.assistants (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    scope text NOT NULL CHECK (scope IN ('global','organization','course')),
+    role text CHECK (role IN ('super_admin','organization_admin','teacher')),
+    org_id uuid REFERENCES public.organizations(id) ON DELETE CASCADE,
+    course_id uuid REFERENCES public.courses(id) ON DELETE CASCADE,
+    name text NOT NULL,
+    openai_assistant_id text NOT NULL,
+    is_active boolean DEFAULT true,
+    metadata jsonb DEFAULT '{}'::jsonb,
+    created_by uuid REFERENCES auth.users(id) ON DELETE SET NULL,
+    created_at timestamp DEFAULT now()
+);
+
+-- uniqueness per scope
+CREATE UNIQUE INDEX IF NOT EXISTS assistants_global_unique
+  ON public.assistants ((lower(name)))
+  WHERE scope = 'global';
+
+CREATE UNIQUE INDEX IF NOT EXISTS assistants_org_role_unique
+  ON public.assistants (org_id, role)
+  WHERE scope = 'organization';
+
+CREATE UNIQUE INDEX IF NOT EXISTS assistants_course_unique
+  ON public.assistants (course_id)
+  WHERE scope = 'course';
+
+-- link a course to its assistant
+ALTER TABLE public.courses
+ADD COLUMN IF NOT EXISTS assistant_id uuid REFERENCES public.assistants(id) ON DELETE SET NULL;
+
+CREATE INDEX IF NOT EXISTS courses_assistant_id_idx ON public.courses(assistant_id);
+
 -- ==============================================
 -- CLEANUP: Drop all excess tables
 -- ==============================================

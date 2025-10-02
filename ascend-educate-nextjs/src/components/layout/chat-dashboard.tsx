@@ -62,6 +62,10 @@ import type { UserSession, BackendProfile } from "../../lib/backend"
 import { backend } from "../../lib/backend"
 
 import type { UserProfile } from "@/types"
+import { useResolvedAssistant } from "@/hooks/useAssistants"
+import { useMyCourses } from "@/hooks/useCourses"
+import { useThreads } from "@/hooks/useThreads"
+import { apiPost } from "@/lib/api"
 
 
 interface ChatSession {
@@ -106,6 +110,8 @@ export function ChatDashboard({ user, onLogout, onSendMessage, onProfileUpdate, 
   const [isAtMinWidth, setIsAtMinWidth] = useState(false)
   const [isAtMaxWidth, setIsAtMaxWidth] = useState(false)
   const [activeChat, setActiveChat] = useState<string | null>(null)
+  const [selectedAssistantId, setSelectedAssistantId] = useState<string | null>(null)
+  const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [userProfile, setUserProfile] = useState<UserProfile>(user)
   const [profileDialogOpen, setProfileDialogOpen] = useState(false)
@@ -122,6 +128,7 @@ export function ChatDashboard({ user, onLogout, onSendMessage, onProfileUpdate, 
       const resp = await backend.getProfile()
       if (!mounted || !resp.ok || !resp.data) return
       const p = resp.data as BackendProfile
+      const isComplete = (p.profile_completion_percentage ?? 0) >= 100
       setUserProfile(prev => ({
         ...prev,
         name: p.full_name || prev.name,
@@ -134,10 +141,10 @@ export function ChatDashboard({ user, onLogout, onSendMessage, onProfileUpdate, 
           github: p.github_url || prev.socialMedia?.github,
           website: p.website || prev.socialMedia?.website,
         },
-        isProfileComplete: (p.profile_completion_percentage ?? 0) >= 100,
+        isProfileComplete: isComplete,
         profileCompletionPercentage: p.profile_completion_percentage ?? prev.profileCompletionPercentage,
       }))
-      if ((p.profile_completion_percentage ?? 0) < 100) {
+      if (!isComplete) {
         setShowProfileManagement(true)
       }
     }
@@ -195,27 +202,69 @@ export function ChatDashboard({ user, onLogout, onSendMessage, onProfileUpdate, 
     window.addEventListener('mouseup', onUp)
   }
   
-  // Mock chat sessions
-  const [chatSessions, setChatSessions] = useState<ChatSession[]>([
-    {
-      id: "1",
-      title: "Getting Started with AI Learning",
-      lastMessage: "How can I improve my study habits?",
-      timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString(), // 30 mins ago
-    },
-    {
-      id: "2", 
-      title: "Math Problem Solving",
-      lastMessage: "Can you help me with calculus?",
-      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(), // 2 hours ago
-    },
-    {
-      id: "3",
-      title: "Essay Writing Tips",
-      lastMessage: "How to structure an academic essay?",
-      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(), // 1 day ago
-    },
-  ])
+  // Role-aware sources
+  const isStudent = userProfile.role === "student"
+  const activeOrgId = session?.active_org_id || session?.roles?.find(r => r.role === userProfile.role && r.scope === 'org')?.org_id
+  const { assistant: resolvedAssistant } = useResolvedAssistant(isStudent ? undefined : userProfile.role, isStudent ? undefined : activeOrgId, undefined)
+  const { assistant: courseAssistant } = useResolvedAssistant(undefined, undefined, selectedCourseId || undefined)
+  const myCourses = useMyCourses()
+  const { threads, create, reload, loading: threadsLoading, creating: threadCreating } = useThreads({ assistantId: selectedAssistantId || resolvedAssistant?.id || courseAssistant?.id || undefined, courseId: selectedCourseId || undefined })
+
+  // Auto-create thread if profile is complete and no threads exist
+  const [hasAutoCreated, setHasAutoCreated] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return localStorage.getItem('hasAutoCreatedThread') === 'true'
+  })
+  
+  useEffect(() => {
+    const autoCreateThread = async () => {
+      if (!userProfile.isProfileComplete || threads.length > 0 || hasAutoCreated || !resolvedAssistant && !courseAssistant) return
+      
+      try {
+        const ctxAssistantId = selectedAssistantId || resolvedAssistant?.id || courseAssistant?.id
+        const ctxCourseId = selectedCourseId || undefined
+        
+        if (isStudent && !ctxCourseId) {
+          // For students, we need a course selected first
+          return
+        }
+        
+        if (!ctxAssistantId) return
+        
+        setHasAutoCreated(true) // Prevent multiple creations
+        localStorage.setItem('hasAutoCreatedThread', 'true')
+        const newThread = await create()
+        setActiveChat(newThread.id)
+        
+        // Auto-select assistant if none set (non-student)
+        if (!isStudent && !selectedAssistantId && resolvedAssistant?.id) {
+          setSelectedAssistantId(resolvedAssistant.id)
+        }
+      } catch (error) {
+        console.error("Failed to auto-create thread:", error)
+        setHasAutoCreated(false) // Reset on error to allow retry
+        localStorage.removeItem('hasAutoCreatedThread')
+      }
+    }
+    
+    autoCreateThread()
+  }, [userProfile.isProfileComplete, threads.length, resolvedAssistant, courseAssistant, isStudent, selectedCourseId, selectedAssistantId, create, hasAutoCreated])
+
+  // map to UI list
+  const chatSessions: ChatSession[] = (threads || []).map((t: any, index: number) => {
+    // Clean up thread titles - remove assistant names and use generic names
+    let title = t.title || `Chat ${index + 1}`
+    if (title.includes("Super_admin_agent") || title.includes("Organization_admin_agent") || title.includes("Teacher_agent")) {
+      title = `Chat ${index + 1}`
+    }
+    
+    return {
+      id: t.id,
+      title: title,
+      lastMessage: "",
+      timestamp: t.last_message_at || t.updated_at || t.created_at
+    }
+  })
 
   const getInitials = (name: string) => {
     return name
@@ -225,21 +274,42 @@ export function ChatDashboard({ user, onLogout, onSendMessage, onProfileUpdate, 
       .toUpperCase()
   }
 
-  const handleNewChat = () => {
-    const newChat: ChatSession = {
-      id: Date.now().toString(),
-      title: "New Chat",
-      lastMessage: "",
-      timestamp: new Date().toISOString(),
+  const handleNewChat = async () => {
+    try {
+      // Ensure context is ready
+      const ctxAssistantId = selectedAssistantId || resolvedAssistant?.id || courseAssistant?.id
+      const ctxCourseId = selectedCourseId || undefined
+      if (isStudent && !ctxCourseId) throw new Error("Select a course first")
+      if (!ctxAssistantId) throw new Error("Assistant not resolved yet")
+      // Create thread
+      const t = await create()
+      setActiveChat(t.id)
+      // Auto-select assistant if none set (non-student)
+      if (!isStudent && !selectedAssistantId && resolvedAssistant?.id) {
+        setSelectedAssistantId(resolvedAssistant.id)
+      }
+      // Reset auto-created flag since user manually created a chat
+      setHasAutoCreated(true)
+      localStorage.setItem('hasAutoCreatedThread', 'true')
+    } catch (error) {
+      console.error("Failed to create new chat:", error)
     }
-    setChatSessions(prev => [newChat, ...prev])
-    setActiveChat(newChat.id)
   }
 
-  const handleDeleteChat = (chatId: string) => {
-    setChatSessions(prev => prev.filter(chat => chat.id !== chatId))
+  const handleDeleteChat = async (chatId: string) => {
+    try {
+      await apiPost(`/assistant/chats/${chatId}/archive`)
+      await reload()
     if (activeChat === chatId) {
       setActiveChat(null)
+        // If this was the last thread, reset auto-creation flag
+        if (threads.length <= 1) {
+          setHasAutoCreated(false)
+          localStorage.removeItem('hasAutoCreatedThread')
+        }
+      }
+    } catch (error) {
+      console.error("Failed to delete chat:", error)
     }
   }
 
@@ -385,14 +455,29 @@ export function ChatDashboard({ user, onLogout, onSendMessage, onProfileUpdate, 
               </div>
             </div>
             
+            {/* Context selector (role-aware) - Only show for students */}
+            {isStudent && (
+              <div className="space-y-2 mb-2">
+                <p className="text-xs text-muted-foreground">My Courses</p>
+                <div className="flex flex-col gap-2 max-h-40 overflow-auto">
+                  {myCourses.map((c:any) => (
+                    <Button key={c.id} variant={selectedCourseId===c.id?"default":"secondary"} size="sm" onClick={()=>{setSelectedCourseId(c.id); setSelectedAssistantId(null); setHasAutoCreated(false); localStorage.removeItem('hasAutoCreatedThread');}}>
+                      {c.title}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            )}
+            
             {/* New Chat Button */}
             <Button
               onClick={handleNewChat}
+              disabled={threadCreating || !resolvedAssistant && !courseAssistant}
               className="w-full glass-button hover-scale text-primary-foreground border-0 shadow-lg hover:shadow-xl group"
               variant="default"
             >
               <Plus className="h-4 w-4 mr-2 transition-transform duration-200 group-hover:rotate-90" />
-              New Chat
+              {threadCreating ? "Creating..." : "New Chat"}
             </Button>
           </div>
 
@@ -412,7 +497,19 @@ export function ChatDashboard({ user, onLogout, onSendMessage, onProfileUpdate, 
           {/* Chat History */}
           <ScrollArea className="flex-1">
             <div className="p-3 space-y-1.5">
-              {filteredChats.map((chat, index) => (
+              {threadsLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="loading-spinner w-6 h-6"></div>
+                  <span className="ml-2 text-sm text-muted-foreground">Loading conversations...</span>
+                </div>
+              ) : filteredChats.length === 0 ? (
+                <div className="text-center py-8">
+                  <MessageSquare className="h-8 w-8 text-muted-foreground/50 mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">No conversations yet</p>
+                  <p className="text-xs text-muted-foreground/70 mt-1">Start a new chat to begin</p>
+                </div>
+              ) : (
+                filteredChats.map((chat, index) => (
                 <div
                   key={chat.id}
                   className={cn(
@@ -474,7 +571,8 @@ export function ChatDashboard({ user, onLogout, onSendMessage, onProfileUpdate, 
                     </Button>
                   </div>
                 </div>
-              ))}
+                ))
+              )}
             </div>
           </ScrollArea>
 
@@ -690,33 +788,12 @@ export function ChatDashboard({ user, onLogout, onSendMessage, onProfileUpdate, 
                 </div>
               </div>
             </div>
-          ) : activeChat || chatSessions.length === 0 ? (
+          ) : (
             <ChatInterface
               onSendMessage={onSendMessage}
               placeholder={`Ask TeachMe AI anything about ${userProfile.role === "student" ? "learning" : userProfile.role === "teacher" ? "teaching" : "administration"}...`}
+              threadId={activeChat}
             />
-          ) : (
-            <div className="h-full flex items-center justify-center p-4 sm:p-8 relative">
-              <div className="text-center max-w-lg w-full animate-fade-in">
-                <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-primary rounded-2xl mx-auto mb-6 sm:mb-8 flex items-center justify-center shadow-xl animate-float">
-                  <MessageSquare className="h-8 w-8 sm:h-10 sm:w-10 text-primary-foreground" />
-                </div>
-                <h2 className="text-display-lg sm:text-display-xl font-bold mb-4 sm:mb-6 bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text text-transparent">
-                  Welcome to TeachMe AI
-                </h2>
-                <p className="text-body-lg text-muted-foreground mb-6 sm:mb-8 leading-relaxed">
-                  Select a conversation from the sidebar or start a new chat to begin learning with AI.
-                </p>
-                <Button 
-                  onClick={handleNewChat} 
-                  className="glass-button hover-scale text-primary-foreground shadow-lg hover:shadow-xl"
-                  size="lg"
-                >
-                  <Plus className="h-5 w-5 mr-2" />
-                  Start New Chat
-                </Button>
-              </div>
-            </div>
           )}
         </div>
       </div>

@@ -11,6 +11,22 @@ async def check_permission(user_id: str, role: str, action: str, resource: str) 
         "resource": resource,
     }
     result = await opa_check(payload)
-    return bool(result.get("result", {}).get("allow", False))
+    print(f"🔧 OPA DEBUG: payload={payload}, result={result}")
+    
+    # Handle different OPA response formats
+    if isinstance(result, bool):
+        return result
+    elif isinstance(result, dict):
+        # Try nested result format first
+        if "result" in result and isinstance(result["result"], dict):
+            return bool(result["result"].get("allow", False))
+        # Try direct allow format
+        elif "allow" in result:
+            return bool(result["allow"])
+        # Try direct boolean result
+        else:
+            return bool(result)
+    else:
+        return False
 
 

@@ -6,8 +6,10 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
+import { apiPost } from "@/lib/api"
 import { getUserIdFromToken } from "../../utils/jwt"
 import { useAuth } from "../../hooks/useAuth"
+import { useChat } from "../../hooks/useChat"
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 // HTTP mode: no WebSocket
@@ -25,6 +27,7 @@ interface ChatInterfaceProps {
   className?: string
   placeholder?: string
   onSendMessage?: () => void
+  threadId?: string | null
 }
 
 // Helper function to detect if content has markdown formatting
@@ -144,17 +147,42 @@ function MarkdownRenderer({ content }: { content: string }) {
 export function ChatInterface({ 
   className, 
   placeholder = "Ask TeachMe AI anything...",
-  onSendMessage 
+  onSendMessage,
+  threadId: threadIdProp
 }: ChatInterfaceProps) {
   const [message, setMessage] = React.useState("")
   const [files, setFiles] = React.useState<FileAttachment[]>([])
   
-  // Local messages state (user and AI)
-  const [wsMessages, setWsMessages] = React.useState<Array<{ id: string; type: "user" | "ai"; message: string; timestamp: string; files?: FileAttachment[]; isLoading?: boolean }>>([])
-  const [sending, setSending] = React.useState(false)
-  
   // Thread management for conversation context
-  const [threadId, setThreadId] = React.useState<string | null>(null)
+  const [threadId, setThreadId] = React.useState<string | null>(threadIdProp || null)
+  React.useEffect(() => { setThreadId(threadIdProp || null) }, [threadIdProp])
+  
+  // Use the useChat hook to manage messages
+  const { messages: backendMessages, send, sending } = useChat(threadId || undefined)
+  
+  // Convert backend messages to UI format
+  const wsMessages = React.useMemo(() => {
+    const converted = backendMessages.map((msg: any) => ({
+      id: msg.id || `${msg.openai_message_id || Date.now()}`,
+      type: msg.role === "user" ? "user" as const : "ai" as const,
+      message: msg.content || "",
+      timestamp: msg.created_at || new Date().toISOString(),
+      isLoading: false
+    }))
+    
+    // Add loading message if currently sending
+    if (sending && converted.length > 0 && converted[converted.length - 1]?.type === "user") {
+      converted.push({
+        id: `loading-${Date.now()}`,
+        type: "ai" as const,
+        message: "",
+        timestamp: new Date().toISOString(),
+        isLoading: true
+      })
+    }
+    
+    return converted
+  }, [backendMessages, sending])
   
   // Get user session for fallback user ID
   const { session } = useAuth()
@@ -191,108 +219,20 @@ export function ChatInterface({
     if (sending) return // Prevent multiple sends
     
     const text = message.trim()
-    const userMsg = {
-      id: `${Date.now()}-${Math.random()}`,
-      type: "user" as const,
-      message: text,
-      timestamp: new Date().toISOString(),
-      files: files.length ? files : undefined,
-    }
-    setWsMessages(prev => [...prev, userMsg])
     setMessage("")
     setFiles([])
-    setSending(true)
-
-    // Add loading message
-    const loadingMsg = {
-      id: `loading-${Date.now()}`,
-      type: "ai" as const,
-      message: "",
-      timestamp: new Date().toISOString(),
-      isLoading: true
-    }
-    setWsMessages(prev => [...prev, loadingMsg])
 
     try {
-      const token2 = typeof window !== 'undefined' ? window.localStorage.getItem('token2') : null
-      
-      // Extract user ID from token or session
-      let userId: string | null = null
-      if (token2) {
-        userId = getUserIdFromToken(token2)
-        console.log('User ID extracted from token:', userId)
+      if (!threadId) {
+        throw new Error('No thread selected. Create a new chat first.')
       }
       
-      // Fallback to session user_id if token extraction fails
-      if (!userId && session?.user_id) {
-        userId = session.user_id
-        console.log('User ID extracted from session:', userId)
-      }
-      
-      if (!userId) {
-        throw new Error('Unable to extract user ID from token or session')
-      }
-      
-      const resp = await fetch('http://localhost:5000/api/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token2 ? { Authorization: `Bearer ${token2}` } : {}),
-        },
-        body: JSON.stringify({
-          message: text,
-          user_id: userId, // Extract from JWT token
-          thread_id: threadId, // null for first message, then use returned thread_id
-          assistant_id: "asst_NyCIpeNKfVMMbzK8JfwryCff", // null to use Super-Admin Agent
-          context: {}
-        }),
-      })
-      if (!resp.ok) {
-        const errText = await resp.text()
-        throw new Error(errText || `HTTP ${resp.status}`)
-      }
-      const data = await resp.json().catch(() => ({}))
-      
-      // Extract response data from the new API format
-      const aiText = data?.message || 'Hello World! I am responding over HTTP.'
-      const responseThreadId = data?.thread_id
-      const messageId = data?.message_id
-      const responseTimestamp = data?.timestamp
-      const metadata = data?.metadata || {}
-      
-      // Update thread_id for subsequent messages
-      if (responseThreadId && responseThreadId !== threadId) {
-        setThreadId(responseThreadId)
-      }
-      
-      const aiMsg = {
-        id: messageId || `${Date.now()}-${Math.random()}`,
-        type: "ai" as const,
-        message: aiText,
-        timestamp: responseTimestamp || new Date().toISOString(),
-        isLoading: false
-      }
-      
-      // Replace loading message with actual response
-      setWsMessages(prev => prev.map(msg => 
-        msg.isLoading ? aiMsg : msg
-      ))
+      // Use the useChat hook's send function
+      await send(text)
       onSendMessage?.()
     } catch (e: unknown) {
-      const aiMsg = {
-        id: `${Date.now()}-${Math.random()}`,
-        type: "ai" as const,
-        message: `Request failed: ${e instanceof Error ? e.message : 'Unknown error'}`,
-        timestamp: new Date().toISOString(),
-        isLoading: false
-      }
-      
-      // Replace loading message with error message
-      setWsMessages(prev => prev.map(msg => 
-        msg.isLoading ? aiMsg : msg
-      ))
-    } finally {
-      setSending(false)
+      console.error('Failed to send message:', e)
+      // The useChat hook will handle error states
     }
   }
 

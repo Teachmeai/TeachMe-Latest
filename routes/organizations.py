@@ -56,72 +56,72 @@ async def list_organizations(user_id: str = Depends(get_user_id)):
     except Exception:
         raise HTTPException(status_code=500, detail="Failed to list organizations")
 
+# COMMENTED OUT - Now using direct function calls in assistant_chats.py
+# @router.post("")
+# async def create_organization(payload: CreateOrganizationRequest, user_id: str = Depends(get_user_id)):
+#     session = await get_session(user_id) or await build_session_payload(user_id)
+#     _require_super_admin(session)
+#
+#     supabase = get_supabase_admin()
+#     now_iso = datetime.now(timezone.utc).isoformat()
+#     try:
+#         resp = supabase.table("organizations").insert({
+#             "name": payload.name,
+#             "created_by": user_id,
+#             "created_at": now_iso,
+#         }).execute()
+#         org = (resp.data or [None])[0]
+#         if not org:
+#             raise HTTPException(status_code=500, detail="Failed to create organization")
+#         return {"ok": True, "organization": org}
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail="Error creating organization")
 
-@router.post("")
-async def create_organization(payload: CreateOrganizationRequest, user_id: str = Depends(get_user_id)):
-    session = await get_session(user_id) or await build_session_payload(user_id)
-    _require_super_admin(session)
 
-    supabase = get_supabase_admin()
-    now_iso = datetime.now(timezone.utc).isoformat()
-    try:
-        resp = supabase.table("organizations").insert({
-            "name": payload.name,
-            "created_by": user_id,
-            "created_at": now_iso,
-        }).execute()
-        org = (resp.data or [None])[0]
-        if not org:
-            raise HTTPException(status_code=500, detail="Failed to create organization")
-        return {"ok": True, "organization": org}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail="Error creating organization")
-
-
-@router.post("/{org_id}/invites")
-async def invite_org_role(org_id: str, request: InviteRequest, user_id: str = Depends(get_user_id)):
-    session = await get_session(user_id) or await build_session_payload(user_id)
-
-    # Permissions:
-    # - super_admin: may invite [organization_admin] only
-    # - org_admin of this org: may invite [organization_admin, teacher]
-    is_super_admin = session.get("active_role") == "super_admin"
-    supabase = get_supabase_admin()
-    is_org_admin = _is_org_admin_for(supabase, user_id, org_id)
-
-    allowed_roles = ["organization_admin"] if is_super_admin else ["organization_admin", "teacher"] if is_org_admin else []
-
-    if request.role not in allowed_roles:
-        raise HTTPException(status_code=400, detail="Invalid role for organization invite")
-
-    now_iso = datetime.now(timezone.utc).isoformat()
-    try:
-        # Create pending invite
-        invite_resp = supabase.table("invites").insert({
-            "inviter": user_id,
-            "invitee_email": str(request.invitee_email).lower(),
-            "role": request.role,
-            "org_id": org_id,
-            "status": "pending",
-            "created_at": now_iso,
-        }).execute()
-        invite = (invite_resp.data or [None])[0]
-        if not invite:
-            raise HTTPException(status_code=500, detail="Failed to create invite")
-        # Send invitation email (best-effort)
-        email_sent = False
-        try:
-            # Lookup org name for nicer email content
-            org_resp = supabase.table("organizations").select("name").eq("id", org_id).single().execute()
-            org_name = (org_resp.data or {}).get("name") or "Your Organization"
-            email_sent = await send_invite_email(str(request.invitee_email), org_name, invite.get("id"))
-        except Exception:
-            # Do not fail the endpoint if email sending fails
-            email_sent = False
-        return {"ok": True, "invite": invite, "email_sent": email_sent}
-    except Exception:
-        raise HTTPException(status_code=500, detail="Error creating invite")
-
+# COMMENTED OUT - Now using direct function calls in assistant_chats.py
+# @router.post("/{org_id}/invites")
+# async def invite_org_role(org_id: str, request: InviteRequest, user_id: str = Depends(get_user_id)):
+#     session = await get_session(user_id) or await build_session_payload(user_id)
+#
+#     # Permissions:
+#     # - super_admin: may invite [organization_admin] only
+#     # - org_admin of this org: may invite [organization_admin, teacher]
+#     is_super_admin = session.get("active_role") == "super_admin"
+#     supabase = get_supabase_admin()
+#     is_org_admin = _is_org_admin_for(supabase, user_id, org_id)
+#
+#     allowed_roles = ["organization_admin"] if is_super_admin else ["organization_admin", "teacher"] if is_org_admin else []
+#
+#     if request.role not in allowed_roles:
+#         raise HTTPException(status_code=400, detail="Invalid role for organization invite")
+#
+#     now_iso = datetime.now(timezone.utc).isoformat()
+#     try:
+#         # Create pending invite
+#         invite_resp = supabase.table("invites").insert({
+#             "inviter": user_id,
+#             "invitee_email": str(request.invitee_email).lower(),
+#             "role": request.role,
+#             "org_id": org_id,
+#             "status": "pending",
+#             "created_at": now_iso,
+#         }).execute()
+#         invite = (invite_resp.data or [None])[0]
+#         if not invite:
+#             raise HTTPException(status_code=500, detail="Failed to create invite")
+#         # Send invitation email (best-effort)
+#         email_sent = False
+#         try:
+#             # Lookup org name for nicer email content
+#             org_resp = supabase.table("organizations").select("name").eq("id", org_id).single().execute()
+#             org_name = (org_resp.data or {}).get("name") or "Your Organization"
+#             email_sent = await send_invite_email(str(request.invitee_email), org_name, invite.get("id"))
+#         except Exception:
+#             # Do not fail the endpoint if email sending fails
+#             email_sent = False
+#         return {"ok": True, "invite": invite, "email_sent": email_sent}
+#     except Exception:
+#         raise HTTPException(status_code=500, detail="Error creating invite")
 
 class InviteTeacherRequest(BaseModel):
     invitee_email: EmailStr

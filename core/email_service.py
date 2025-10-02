@@ -20,6 +20,9 @@ fastmail = FastMail(email_config)
 async def send_invite_email(email: str, org_name: str, invite_id: str, frontend_url: str = "http://localhost:3000"):
     """Send organization invite email"""
     
+    # Email service debug info (can be removed in production)
+    # print(f"🔧 EMAIL SERVICE DEBUG: Starting send_invite_email")
+    
     # Create invite link
     invite_link = f"{frontend_url}/invites?invite_id={invite_id}"
     

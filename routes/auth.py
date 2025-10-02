@@ -9,9 +9,10 @@ from service.session_service import get_session, set_session, delete_session
 from service.user_service import build_session_payload, set_profile_active_role
 from core.config import config
 
-def log_auth_operation(operation: str, user_id: str, additional_info: str = "", data: dict = None):
+def log_auth_operation(operation: str, user_id: str, additional_info: str = "", data: dict = None, success: bool = True):
     """Log authentication operations with detailed information"""
-    print(f"🔑 AUTH {operation.upper()}: user_id={user_id}")
+    status = "✅" if success else "❌"
+    print(f"🔑 AUTH {operation.upper()} {status}: user_id={user_id}")
     
     if additional_info:
         print(f"   ℹ️  {additional_info}")
