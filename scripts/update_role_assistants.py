@@ -72,15 +72,64 @@ def build_teacher_tools():
         {
             "type": "function",
             "function": {
-                "name": "invite_student",
-                "description": "Invite a student to a course by email.",
+                "name": "send_course_invite_email",
+                "description": "Send course invitation email to a student",
                 "parameters": {
                     "type": "object",
                     "properties": {
                         "course_id": {"type": "string", "description": "Course UUID"},
-                        "email": {"type": "string", "description": "Student email"}
+                        "invitee_email": {"type": "string", "description": "Student email"},
+                        "expires_in_minutes": {"type": "integer", "description": "Invitation expiry in minutes", "default": 60}
                     },
-                    "required": ["course_id", "email"]
+                    "required": ["course_id", "invitee_email"]
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "create_course_assistant",
+                "description": "Create a dedicated AI assistant for a course by course name",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "course_name": {"type": "string", "description": "Name of the course to create assistant for"},
+                        "custom_instructions": {"type": "string", "description": "Custom instructions for the course assistant"}
+                    },
+                    "required": ["course_name"]
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "upload_course_content",
+                "description": "Upload documents/resources to a course's knowledge base by course name. Can accept file IDs for pre-uploaded files.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "course_name": {"type": "string", "description": "Name of the course"},
+                        "content_type": {"type": "string", "enum": ["document", "video", "link", "text"], "description": "Type of content (optional if file_ids provided)"},
+                        "content": {"type": "string", "description": "Content to upload (optional if file_ids provided)"},
+                        "title": {"type": "string", "description": "Title of the content"},
+                        "file_ids": {"type": "array", "items": {"type": "string"}, "description": "List of temporary file IDs to upload"}
+                    },
+                    "required": ["course_name"]  # content or file_ids should be provided
+                }
+            }
+        },
+        {
+            "type": "function",
+            "function": {
+                "name": "update_course_assistant_instructions",
+                "description": "Update the system instructions for a course assistant by course name",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "course_name": {"type": "string", "description": "Name of the course"},
+                        "instructions": {"type": "string", "description": "New system instructions"}
+                    },
+                    "required": ["course_name", "instructions"]
                 }
             }
         }
@@ -105,7 +154,10 @@ def main():
     )
     teacher_instructions = (
         "You are the Teacher Assistant. You help teachers manage courses and students. "
-        "Use tools to create courses and invite students."
+        "Use tools to create courses, send course invites, create course assistants, upload content, and update assistant instructions. "
+        "When working with courses, use course names instead of IDs for better user experience. "
+        "IMPORTANT: When users attach files and mention uploading to a course, ALWAYS use the upload_course_content tool with the provided file_ids. "
+        "The tool can accept file_ids parameter for pre-uploaded files - use this when files are attached to messages."
     )
 
     if org_admin_id:

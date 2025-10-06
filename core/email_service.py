@@ -146,6 +146,82 @@ async def send_invite_email(email: str, org_name: str, invite_id: str, role: str
         print(f"❌ Failed to send invite email to {email}: {str(e)}")
         return False
 
+async def send_course_invite_email_v2(email: str, course_name: str, inviter_name: str, invite_id: str, frontend_url: str = "http://localhost:3000"):
+    """Send course invite email"""
+    
+    invite_link = f"{frontend_url}/course-invites?invite_id={invite_id}"
+    
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <title>Course Invitation - TeachMe AI</title>
+        <style>
+            body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+            .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+            .header {{ background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }}
+            .content {{ background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }}
+            .button {{ display: inline-block; background: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; }}
+            .button:hover {{ background: #5a6fd8; }}
+            .footer {{ text-align: center; margin-top: 30px; color: #666; font-size: 14px; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>🎓 TeachMe AI</h1>
+                <h2>Course Invitation</h2>
+            </div>
+            <div class="content">
+                <h3>You've been invited to join a course!</h3>
+                <p>Hello,</p>
+                <p><strong>{inviter_name}</strong> has invited you to join the course <strong>"{course_name}"</strong> on TeachMe AI.</p>
+                
+                <p>As a student in this course, you will be able to:</p>
+                <ul>
+                    <li>Access course materials and resources</li>
+                    <li>Chat with the course AI assistant</li>
+                    <li>Track your learning progress</li>
+                    <li>Get personalized help and guidance</li>
+                </ul>
+                
+                <p>Click the button below to accept this invitation:</p>
+                
+                <div style="text-align: center;">
+                    <a href="{invite_link}" class="button">Join Course</a>
+                </div>
+                
+                <p>If the button doesn't work, you can copy and paste this link into your browser:</p>
+                <p style="word-break: break-all; background: #eee; padding: 10px; border-radius: 5px;">{invite_link}</p>
+                
+                <p>This invitation will expire in 7 days.</p>
+                
+                <p>Best regards,<br>The TeachMe AI Team</p>
+            </div>
+            <div class="footer">
+                <p>© 2025 TeachMe AI. All rights reserved.</p>
+                <p>If you didn't expect this invitation, you can safely ignore this email.</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    
+    message = MessageSchema(
+        subject="🎓 Course Invitation - TeachMe AI",
+        recipients=[email],
+        body=html_content,
+        subtype="html"
+    )
+    
+    try:
+        await fastmail.send_message(message)
+        return True
+    except Exception as e:
+        print(f"❌ Failed to send course invite email to {email}: {str(e)}")
+        return False
+
 
 async def send_course_invite_email(email: str, org_name: str, course_title: str, token: str, frontend_url: str = "http://localhost:3000"):
     """Send course enrollment invite email with token link"""

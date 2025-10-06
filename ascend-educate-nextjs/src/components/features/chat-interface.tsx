@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
-import { apiPost } from "@/lib/api"
+import { apiPost, getAuthHeaders } from "@/lib/api"
 import { getUserIdFromToken } from "../../utils/jwt"
 import { useAuth } from "../../hooks/useAuth"
 import { useChat } from "../../hooks/useChat"
@@ -21,6 +21,7 @@ interface FileAttachment {
   name: string
   size: number
   type: string
+  file?: File // Store the actual file object
 }
 
 interface ChatInterfaceProps {
@@ -197,7 +198,7 @@ export function ChatInterface({
     }
   }, [wsMessages])
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     if (sending) return // Prevent file uploads during sending
     
     const selectedFiles = Array.from(event.target.files || [])
@@ -206,7 +207,9 @@ export function ChatInterface({
       name: file.name,
       size: file.size,
       type: file.type,
+      file: file
     }))
+    
     setFiles(prev => [...prev, ...newFiles])
   }
 
@@ -219,6 +222,49 @@ export function ChatInterface({
     if (sending) return // Prevent multiple sends
     
     const text = message.trim()
+    
+    // Upload files to backend and include file IDs in the message
+    let messageWithFiles = text
+    if (files.length > 0) {
+      const fileList = files.map(f => `${f.name} (${f.type}, ${formatFileSize(f.size)})`).join(', ')
+      
+      // Upload files to backend and get file IDs
+      const fileIds = []
+      for (const file of files) {
+        if (file.file) {
+          try {
+            const formData = new FormData()
+            formData.append('file', file.file)
+            
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000'}/upload/temp-file`, {
+              method: 'POST',
+              headers: await getAuthHeaders(),
+              body: formData
+            })
+            
+            console.log(`📁 Upload response for ${file.name}:`, response.status, response.statusText)
+            
+            if (response.ok) {
+              const result = await response.json()
+              fileIds.push(result.file_id)
+              console.log(`📁 Uploaded file: ${file.name} -> ${result.file_id}`)
+            } else {
+              const errorText = await response.text()
+              console.error(`❌ Failed to upload file: ${file.name}`, response.status, errorText)
+            }
+          } catch (error) {
+            console.error(`❌ Error uploading file ${file.name}:`, error)
+          }
+        }
+      }
+      
+      if (fileIds.length > 0) {
+        messageWithFiles = `${text}\n\n[FILES ATTACHED: ${fileList}]\n\nI have attached ${files.length} file(s) that need to be uploaded to the course. Please use the upload_course_content tool with file_ids: [${fileIds.join(', ')}] to upload these files.`
+      } else {
+        messageWithFiles = `${text}\n\n[FILES ATTACHED: ${fileList}]\n\nI have attached ${files.length} file(s) that need to be uploaded to the course, but failed to upload them to the backend. Please provide instructions on how to upload these files manually.`
+      }
+    }
+    
     setMessage("")
     setFiles([])
 
@@ -227,13 +273,30 @@ export function ChatInterface({
         throw new Error('No thread selected. Create a new chat first.')
       }
       
-      // Use the useChat hook's send function
-      await send(text)
+      // Use the useChat hook's send function with file information
+      await send(messageWithFiles)
       onSendMessage?.()
     } catch (e: unknown) {
       console.error('Failed to send message:', e)
       // The useChat hook will handle error states
     }
+  }
+
+  const readFileContent = async (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        const content = e.target?.result as string
+        resolve(content)
+      }
+      reader.onerror = () => reject(new Error('Failed to read file'))
+      
+      if (file.type.startsWith('text/')) {
+        reader.readAsText(file)
+      } else {
+        reader.readAsDataURL(file)
+      }
+    })
   }
 
   const formatFileSize = (bytes: number) => {
@@ -297,17 +360,19 @@ export function ChatInterface({
         </div>
       </ScrollArea>
 
-      {/* File Attachments */}
+
+      {/* File Attachments with Upload Progress */}
       {files.length > 0 && (
         <div className="px-3 sm:px-6 pb-2 sm:pb-3">
           <div className="flex flex-wrap gap-2 max-w-4xl mx-auto">
             {files.map((file) => (
               <div
                 key={file.id}
-                className="flex items-center gap-2 bg-muted/60 rounded-lg px-2 sm:px-3 py-1 sm:py-2 text-xs border border-border hover:bg-muted/80 transition-colors max-w-full"
+                className="flex flex-col gap-1 bg-muted/60 rounded-lg px-2 sm:px-3 py-1 sm:py-2 text-xs border border-border hover:bg-muted/80 transition-colors max-w-full min-w-48"
               >
+                <div className="flex items-center gap-2">
                 <File className="h-3 w-3 text-primary flex-shrink-0" />
-                <span className="truncate min-w-0 max-w-24 sm:max-w-32">{file.name}</span>
+                  <span className="truncate min-w-0 flex-1">{file.name}</span>
                 <span className="text-muted-foreground text-xs flex-shrink-0">({formatFileSize(file.size)})</span>
                 <Button
                   variant="ghost"
@@ -317,6 +382,15 @@ export function ChatInterface({
                 >
                   <X className="h-3 w-3" />
                 </Button>
+                </div>
+                
+                {/* File Status */}
+                <div className="text-xs text-blue-600 flex items-center gap-1">
+                  <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" clipRule="evenodd" />
+                  </svg>
+                  Will upload to backend and reference in message
+                </div>
               </div>
             ))}
           </div>
@@ -370,7 +444,10 @@ export function ChatInterface({
                         variant="default"
                         size="icon"
                         onClick={handleSend}
-                        disabled={(!message.trim() && files.length === 0) || sending}
+                        disabled={
+                          (!message.trim() && files.length === 0) || 
+                          sending
+                        }
                         className="chat-send-button h-10 w-10 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110 disabled:opacity-50 disabled:scale-100 border-0"
                       >
                         {sending ? (
@@ -393,3 +470,5 @@ export function ChatInterface({
     </div>
   )
 }
+
+

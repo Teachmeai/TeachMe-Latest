@@ -5,7 +5,7 @@ from typing import Optional
 import os
 import time
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 from core.supabase import get_supabase_admin
 from core.redis_client import get_redis
@@ -28,6 +28,8 @@ async def _make_internal_api_call(user_id: str, endpoint: str, method: str = "PO
         # Teacher functions
         from functions.teacher_functions import create_course as teacher_create_course
         from functions.teacher_functions import send_course_invite_email_function as teacher_send_course_invite_email
+        # Course functions
+        from functions.course_functions import create_course_assistant, upload_course_content, update_course_assistant_instructions
         
         if endpoint == "/organizations" and method.upper() == "POST":
             # Create organization using dedicated function
@@ -78,6 +80,38 @@ async def _make_internal_api_call(user_id: str, endpoint: str, method: str = "PO
             email = (json_data or {}).get("invitee_email") or (json_data or {}).get("email")
             expires_in_minutes = (json_data or {}).get("expires_in_minutes", 60)
             return await teacher_send_course_invite_email(user_id, course_id, email, expires_in_minutes)
+        
+        elif endpoint == "/courses/create-assistant" and method.upper() == "POST":
+            # Create course assistant using dedicated function
+            course_name = (json_data or {}).get("course_name")
+            custom_instructions = (json_data or {}).get("custom_instructions", "")
+            
+            if not course_name:
+                return {"error": "course_name is required"}
+            
+            return await create_course_assistant(user_id, course_name, custom_instructions)
+            
+        elif endpoint == "/courses/upload-content" and method.upper() == "POST":
+            # Upload course content using dedicated function
+            course_name = (json_data or {}).get("course_name")
+            content_type = (json_data or {}).get("content_type")
+            content = (json_data or {}).get("content")
+            title = (json_data or {}).get("title", "Untitled")
+            
+            if not (course_name and content_type and content):
+                return {"error": "course_name, content_type, and content are required"}
+            
+            return await upload_course_content(user_id, course_name, content_type, content, title)
+            
+        elif endpoint == "/courses/update-assistant-instructions" and method.upper() == "PATCH":
+            # Update course assistant instructions using dedicated function
+            course_name = (json_data or {}).get("course_name")
+            instructions = (json_data or {}).get("instructions")
+            
+            if not (course_name and instructions):
+                return {"error": "course_name and instructions are required"}
+            
+            return await update_course_assistant_instructions(user_id, course_name, instructions)
         
         else:
             return {"error": f"Endpoint {endpoint} not implemented for direct calls"}
@@ -167,12 +201,22 @@ async def create_thread(payload: CreateThreadRequest, user_id: str = Depends(get
         except Exception:
             pass
 
+    # Get current user's role from session
+    current_role = None
+    try:
+        from service.session_service import get_session
+        from service.user_service import build_session_payload
+        session = await get_session(user_id) or await build_session_payload(user_id)
+        current_role = (session or {}).get("active_role")
+    except Exception:
+        pass
+
     rec = {
         "user_id": user_id,
         "assistant_id": payload.assistant_id,
         "course_id": payload.course_id,
         "org_id": org_id_final,
-        "role": None,
+        "role": current_role,
         "openai_thread_id": openai_thread_id,
         "title": payload.title or "New Chat",
     }
@@ -282,7 +326,23 @@ async def list_threads(course_id: Optional[str] = None, page: int = 1, page_size
     supabase = get_supabase_admin()
     page = max(1, page)
     page_size = max(1, min(100, page_size))
+    
+    # Get current user's role from session
+    current_role = None
+    try:
+        from service.session_service import get_session
+        from service.user_service import build_session_payload
+        session = await get_session(user_id) or await build_session_payload(user_id)
+        current_role = (session or {}).get("active_role")
+    except Exception:
+        pass
+    
     q = supabase.table("chat_threads").select("*").eq("user_id", user_id)
+    
+    # Filter by current role if available
+    if current_role:
+        q = q.eq("role", current_role)
+    
     if course_id:
         q = q.eq("course_id", course_id)
     # PostgREST pagination: range headers are not exposed in python client; emulate by limit/offset
@@ -400,17 +460,87 @@ async def send_message(payload: SendMessageRequest, user_id: str = Depends(get_u
                             profile = supabase.table("profiles").select("id,full_name,active_role").eq("id", user_id).single().execute().data or {}
                             roles = supabase.table("user_roles").select("role").eq("user_id", user_id).execute().data or []
                             result_obj = {"user_id": user_id, "profile": profile, "roles": roles}
+                        elif norm in ("list_courses", "listcourses", "get_courses", "getcourses"):
+                            # Get user's org_id from session
+                            try:
+                                from service.session_service import get_session
+                                from service.user_service import build_session_payload
+                                session = await get_session(user_id) or await build_session_payload(user_id)
+                                org_id = (session or {}).get("org_id") or (session or {}).get("active_org_id")
+                                
+                                if not org_id:
+                                    # Fallback to database lookup
+                                    mem_resp = supabase.table("organization_memberships").select("org_id").eq("user_id", user_id).eq("role", "teacher").limit(1).execute()
+                                    org_id = mem_resp.data[0].get("org_id") if mem_resp.data else None
+                                
+                                if org_id:
+                                    courses_resp = supabase.table("courses").select("*").eq("org_id", org_id).order("created_at", desc=True).execute()
+                                    result_obj = {"ok": True, "courses": courses_resp.data or []}
+                                else:
+                                    result_obj = {"ok": False, "error": "No organization found"}
+                            except Exception as e:
+                                logger.error(f"❌ LIST COURSES ERROR: {str(e)}")
+                                result_obj = {"ok": False, "error": f"Failed to list courses: {str(e)}"}
+                        # Old upload_course_content handler removed - using new one below
                         elif norm in ("switch_role", "switchrole"):
                             new_role = (fargs or {}).get("role")
                             if new_role:
                                 supabase.table("profiles").update({"active_role": new_role}).eq("id", user_id).execute()
                             result_obj = {"ok": True, "active_role": new_role}
                         elif norm in ("create_course", "createcourse"):
+                            # Get org_id from session if not provided
                             org_id = (fargs or {}).get("org_id")
-                            title = (fargs or {}).get("title")
+                            if not org_id:
+                                # Try multiple approaches to get org_id
+                                try:
+                                    # Approach 1: Direct session service
+                                    from service.session_service import get_session
+                                    from service.user_service import build_session_payload
+                                    session = await get_session(user_id) or await build_session_payload(user_id)
+                                    logger.info(f"🔧 CREATE COURSE DEBUG: session={session}")
+                                    org_id = (session or {}).get("org_id")
+                                    logger.info(f"🔧 CREATE COURSE DEBUG: org_id from session={org_id}")
+                                    
+                                    # Approach 2: If still no org_id, try direct database lookup
+                                    if not org_id:
+                                        logger.info(f"🔧 CREATE COURSE DEBUG: Trying database lookup for user {user_id}")
+                                        mem_resp = supabase.table("organization_memberships").select("org_id").eq("user_id", user_id).eq("role", "teacher").limit(1).execute()
+                                        if mem_resp.data:
+                                            org_id = mem_resp.data[0].get("org_id")
+                                            logger.info(f"🔧 CREATE COURSE DEBUG: org_id from database={org_id}")
+                                    
+                                    # Approach 3: Use thread's org_id as fallback
+                                    if not org_id:
+                                        try:
+                                            thread_org_id = th.get("org_id")
+                                            if thread_org_id:
+                                                org_id = thread_org_id
+                                                logger.info(f"🔧 CREATE COURSE DEBUG: org_id from thread={org_id}")
+                                        except Exception:
+                                            pass
+                                        
+                                except Exception as e:
+                                    logger.error(f"❌ CREATE COURSE SESSION ERROR: {str(e)}")
+                                    pass
+                            
+                            # Support both 'name' and 'title' parameters
+                            title = (fargs or {}).get("title") or (fargs or {}).get("name")
                             description = (fargs or {}).get("description")
-                            if not (org_id and title):
-                                raise Exception("org_id and title required")
+                            
+                            if not title:
+                                raise Exception("Course name/title is required")
+                            if not org_id:
+                                logger.error(f"❌ CREATE COURSE: No org_id found. fargs={fargs}, session_org_id={org_id}")
+                                raise Exception("Organization not found in session. Please ensure you're logged in as a teacher in an organization.")
+                            
+                            # Check if course already exists
+                            existing_course = supabase.table("courses").select("id").eq("title", title).eq("org_id", org_id).limit(1).execute()
+                            if existing_course.data:
+                                logger.info(f"🔧 CREATE COURSE: Course '{title}' already exists")
+                                raise Exception(f"Course '{title}' already exists in your organization")
+                            
+                            logger.info(f"🔧 CREATE COURSE: org_id={org_id}, title={title}, user_id={user_id}")
+                            
                             mem = supabase.table("organization_memberships").select("role").eq("user_id", user_id).eq("org_id", org_id).limit(1).execute()
                             role = (mem.data or [{}])[0].get("role")
                             if role not in ("teacher", "organization_admin"):
@@ -427,6 +557,96 @@ async def send_message(payload: SendMessageRequest, user_id: str = Depends(get_u
                                 fetch = supabase.table("courses").select("*").eq("created_by", user_id).eq("title", title).order("created_at", desc=True).limit(1).execute()
                                 course_row = (fetch.data or [None])[0]
                             result_obj = {"ok": True, "course": course_row}
+                            
+                            # Deterministic assistant response for successful creation
+                            if isinstance(result_obj, dict) and result_obj.get("ok"):
+                                forced_assistant_message = f"Course '{title}' created successfully!"
+                        elif norm in ("invite_student", "invitestudent"):
+                            course_id = (fargs or {}).get("course_id")
+                            email = (fargs or {}).get("email")
+                            
+                            if not (course_id and email):
+                                raise Exception("course_id and email are required")
+                            
+                            logger.info(f"🔧 INVITE STUDENT: course_id={course_id}, email={email}, user_id={user_id}")
+                            
+                            # Check if user is teacher/org admin for this course
+                            course_resp = supabase.table("courses").select("org_id, created_by, title").eq("id", course_id).single().execute()
+                            if not course_resp.data:
+                                raise Exception("Course not found")
+                            
+                            course_org_id = course_resp.data.get("org_id")
+                            course_creator = course_resp.data.get("created_by")
+                            course_title = course_resp.data.get("title", "Unknown Course")
+                            
+                            # Check permissions - user must be course creator or org admin
+                            is_course_creator = course_creator == user_id
+                            is_org_admin = False
+                            
+                            if not is_course_creator:
+                                mem_resp = supabase.table("organization_memberships").select("role").eq("user_id", user_id).eq("org_id", course_org_id).eq("role", "organization_admin").limit(1).execute()
+                                is_org_admin = bool(mem_resp.data)
+                            
+                            if not (is_course_creator or is_org_admin):
+                                raise Exception("Only course creators or organization admins can invite students")
+                            
+                            # Generate JWT token for enrollment (old method)
+                            try:
+                                import jwt
+                                from core.config import config
+                                
+                                token_data = {
+                                    "scope": "course_invite",
+                                    "course_id": course_id,
+                                    "org_id": course_org_id,
+                                    "exp": int((datetime.now(timezone.utc) + timedelta(days=7)).timestamp())
+                                }
+                                
+                                token = jwt.encode(token_data, config.jwt.SECRET, algorithm=config.jwt.ALGORITHM)
+                                
+                                # Send enrollment email with token (old method)
+                                try:
+                                    from core.email_service import send_course_invite_email
+                                    import os
+                                    frontend_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
+                                    
+                                    # Get organization name
+                                    org_resp = supabase.table("organizations").select("name").eq("id", course_org_id).single().execute()
+                                    org_name = org_resp.data.get("name", "Unknown Organization") if org_resp.data else "Unknown Organization"
+                                    
+                                    email_sent = await send_course_invite_email(
+                                        email=email,
+                                        org_name=org_name,
+                                        course_title=course_title,
+                                        token=token,
+                                        frontend_url=frontend_url
+                                    )
+                                    logger.info(f"📧 Course enrollment email sent: {email_sent}")
+                                except Exception as email_error:
+                                    logger.error(f"❌ EMAIL ERROR: {str(email_error)}")
+                                    import traceback
+                                    logger.error(f"❌ EMAIL ERROR TRACEBACK: {traceback.format_exc()}")
+                                    email_sent = False
+                                
+                                enrollment_link = f"{frontend_url}/courses/enroll?token={token}"
+                                
+                                result_obj = {
+                                    "ok": True,
+                                    "message": f"Course enrollment invitation sent to {email}" if email_sent else f"Failed to send email to {email}",
+                                    "course_id": course_id,
+                                    "course_name": course_title,
+                                    "email": email,
+                                    "email_sent": email_sent,
+                                    "enrollment_link": enrollment_link
+                                }
+                                
+                            except Exception as token_error:
+                                logger.error(f"❌ TOKEN GENERATION ERROR: {str(token_error)}")
+                                raise Exception(f"Failed to generate enrollment token: {str(token_error)}")
+                            
+                            # Deterministic assistant response for successful invite
+                            if isinstance(result_obj, dict) and result_obj.get("ok"):
+                                forced_assistant_message = f"Student invitation sent to {email}! They can now accept the invitation to enroll in the course."
                         elif norm in ("invite_org_admin", "inviteorgadmin"):
                             org_id = (fargs or {}).get("org_id")
                             invitee_email = (fargs or {}).get("invitee_email")
@@ -475,6 +695,137 @@ async def send_message(payload: SendMessageRequest, user_id: str = Depends(get_u
                             # Deterministic assistant response to avoid LLM asking for org_id after success
                             if isinstance(result_obj, dict) and result_obj.get("ok"):
                                 forced_assistant_message = f"Invitation sent to {invitee_email} for org {org_id} as Teacher."
+                        elif norm in ("create_course_assistant", "createcourseassistant"):
+                            course_name = (fargs or {}).get("course_name")
+                            custom_instructions = (fargs or {}).get("custom_instructions", "")
+                            
+                            if not course_name:
+                                raise Exception("course_name is required")
+                            
+                            result_obj = await _make_internal_api_call(
+                                user_id=user_id,
+                                endpoint="/courses/create-assistant",
+                                method="POST",
+                                json_data={"course_name": course_name, "custom_instructions": custom_instructions}
+                            )
+                            
+                            # Deterministic assistant response for successful creation
+                            if isinstance(result_obj, dict) and result_obj.get("ok"):
+                                forced_assistant_message = f"Course assistant created successfully for '{course_name}'!"
+                        elif norm in ("upload_course_content", "uploadcoursecontent"):
+                            logger.info(f"🔧 TOOL HANDLER: upload_course_content called with args: {fargs}")
+                            course_name = (fargs or {}).get("course_name")
+                            content_type = (fargs or {}).get("content_type")
+                            content = (fargs or {}).get("content")
+                            title = (fargs or {}).get("title", "Untitled")
+                            file_ids = (fargs or {}).get("file_ids", [])  # New parameter for file IDs
+                            
+                            logger.info(f"🔧 TOOL HANDLER: course_name={course_name}, file_ids={file_ids}, content_type={content_type}")
+                            
+                            if not course_name:
+                                raise Exception("course_name is required")
+                            
+                            # If file_ids are provided, use them to get file content
+                            if file_ids:
+                                logger.info(f"🔧 TOOL HANDLER: Processing file_ids: {file_ids}")
+                                import json
+                                import tempfile
+                                
+                                uploaded_files = []
+                                
+                                for file_id in file_ids:
+                                    try:
+                                        file_data = None
+                                        
+                                        # Try Redis first
+                                        try:
+                                            redis_client = get_redis()
+                                            file_data_str = await redis_client.get(f"temp_file:{file_id}")
+                                            if file_data_str:
+                                                file_data = json.loads(file_data_str)
+                                        except Exception as redis_error:
+                                            logger.warning(f"⚠️ Redis unavailable for file {file_id}: {str(redis_error)}")
+                                        
+                                        # Fallback to file system
+                                        if not file_data:
+                                            temp_dir = tempfile.gettempdir()
+                                            temp_file_path = os.path.join(temp_dir, f"temp_file_{file_id}.json")
+                                            try:
+                                                with open(temp_file_path, 'r') as f:
+                                                    file_data = json.load(f)
+                                            except FileNotFoundError:
+                                                logger.warning(f"⚠️ File {file_id} not found in file system")
+                                                continue
+                                        
+                                        if file_data and file_data.get("user_id") == user_id:
+                                            uploaded_files.append({
+                                                "filename": file_data["filename"],
+                                                "content_type": file_data["content_type"],
+                                                "content": file_data["content"]
+                                            })
+                                            logger.info(f"🔧 TOOL HANDLER: Retrieved file {file_id}: {file_data['filename']} ({len(file_data['content'])} chars)")
+                                        else:
+                                            logger.warning(f"🔧 TOOL HANDLER: File {file_id} not found or user mismatch")
+                                    except Exception as e:
+                                        logger.warning(f"⚠️ Failed to retrieve file {file_id}: {str(e)}")
+                                
+                                # Upload each file to the course using internal function
+                                results = []
+                                for file_info in uploaded_files:
+                                    # Call the internal function directly instead of API endpoint
+                                    from functions.course_functions import upload_course_content
+                                    result_obj = await upload_course_content(
+                                        user_id=user_id,
+                                        course_name=course_name,
+                                        content_type="document",
+                                        content=file_info["content"],
+                                        title=file_info["filename"]
+                                    )
+                                    results.append(result_obj)
+                                
+                                # Deterministic assistant response for successful upload
+                                success_count = sum(1 for r in results if isinstance(r, dict) and r.get("ok"))
+                                if success_count > 0:
+                                    forced_assistant_message = f"Successfully uploaded {success_count} file(s) to '{course_name}' course!"
+                                else:
+                                    forced_assistant_message = f"Failed to upload files to '{course_name}' course."
+                            else:
+                                # Original behavior for text content
+                                if not (content_type and content):
+                                    raise Exception("content_type and content are required")
+                                
+                                result_obj = await _make_internal_api_call(
+                                    user_id=user_id,
+                                    endpoint="/courses/upload-content",
+                                    method="POST",
+                                    json_data={
+                                        "course_name": course_name,
+                                        "content_type": content_type,
+                                        "content": content,
+                                        "title": title
+                                    }
+                                )
+                                
+                                # Deterministic assistant response for successful upload
+                                if isinstance(result_obj, dict) and result_obj.get("ok"):
+                                    forced_assistant_message = f"Content uploaded successfully to '{course_name}' course!"
+                        elif norm in ("update_course_assistant_instructions", "updatecourseassistantinstructions"):
+                            course_name = (fargs or {}).get("course_name")
+                            instructions = (fargs or {}).get("instructions")
+                            
+                            if not (course_name and instructions):
+                                raise Exception("course_name and instructions are required")
+                            
+                            result_obj = await _make_internal_api_call(
+                                user_id=user_id,
+                                endpoint="/courses/update-assistant-instructions",
+                                method="PATCH",
+                                json_data={"course_name": course_name, "instructions": instructions}
+                            )
+                            
+                            # Deterministic assistant response for successful update
+                            if isinstance(result_obj, dict) and result_obj.get("ok"):
+                                forced_assistant_message = f"Assistant instructions updated successfully for '{course_name}' course!"
                         elif norm in ("generate_invite_link", "generateinvitelink"):
                             result_obj = {"ok": False, "error": "Not implemented in tool bridge; call API endpoint"}
                         elif norm in ("enroll_by_token", "enrollbytoken"):

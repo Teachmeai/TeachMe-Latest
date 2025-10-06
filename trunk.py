@@ -1,3 +1,6 @@
+# Apply websockets fix before any other imports
+import fix_websockets
+
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.openapi.utils import get_openapi
@@ -8,6 +11,8 @@ from routes import organizations
 from routes import courses
 from routes import assistants
 from routes import assistant_chats
+# from routes import course_invites  # Removed - using old JWT token method
+from routes import file_upload
 from core.supabase import init_supabase
 from core.redis_client import init_redis
 from middleware.cors import setup_cors
@@ -66,6 +71,8 @@ app.include_router(courses.router)
 # assistants and chat routers
 app.include_router(assistants.router)
 app.include_router(assistant_chats.router)
+# app.include_router(course_invites.router, prefix="/course-invites", tags=["course-invites"])  # Removed - using old JWT token method
+app.include_router(file_upload.router, prefix="/upload", tags=["file-upload"])
 # Chat router disabled (switching to external HTTP agent)
 
 # Debug endpoint to check session status

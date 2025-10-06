@@ -115,6 +115,7 @@ export function ChatDashboard({ user, onLogout, onSendMessage, onProfileUpdate, 
   const [searchQuery, setSearchQuery] = useState("")
   const [userProfile, setUserProfile] = useState<UserProfile>(user)
   const [profileDialogOpen, setProfileDialogOpen] = useState(false)
+  const [showCourseSelection, setShowCourseSelection] = useState(false)
   
   const [showProfileManagement, setShowProfileManagement] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -252,9 +253,15 @@ export function ChatDashboard({ user, onLogout, onSendMessage, onProfileUpdate, 
 
   // map to UI list
   const chatSessions: ChatSession[] = (threads || []).map((t: any, index: number) => {
-    // Clean up thread titles - remove assistant names and use generic names
     let title = t.title || `Chat ${index + 1}`
-    if (title.includes("Super_admin_agent") || title.includes("Organization_admin_agent") || title.includes("Teacher_agent")) {
+    
+    // For course threads (students), show course name
+    if (t.course_id && isStudent) {
+      const course = myCourses.find((c: any) => c.id === t.course_id)
+      title = course?.title || `Course Chat ${index + 1}`
+    }
+    // Clean up generic assistant names
+    else if (title.includes("Super_admin_agent") || title.includes("Organization_admin_agent") || title.includes("Teacher_agent")) {
       title = `Chat ${index + 1}`
     }
     
@@ -276,16 +283,21 @@ export function ChatDashboard({ user, onLogout, onSendMessage, onProfileUpdate, 
 
   const handleNewChat = async () => {
     try {
-      // Ensure context is ready
+      // For students, show course selection modal
+      if (isStudent) {
+        setShowCourseSelection(true)
+        return
+      }
+      
+      // Ensure context is ready for non-students
       const ctxAssistantId = selectedAssistantId || resolvedAssistant?.id || courseAssistant?.id
       const ctxCourseId = selectedCourseId || undefined
-      if (isStudent && !ctxCourseId) throw new Error("Select a course first")
       if (!ctxAssistantId) throw new Error("Assistant not resolved yet")
       // Create thread
       const t = await create()
       setActiveChat(t.id)
       // Auto-select assistant if none set (non-student)
-      if (!isStudent && !selectedAssistantId && resolvedAssistant?.id) {
+      if (!selectedAssistantId && resolvedAssistant?.id) {
         setSelectedAssistantId(resolvedAssistant.id)
       }
       // Reset auto-created flag since user manually created a chat
@@ -296,11 +308,26 @@ export function ChatDashboard({ user, onLogout, onSendMessage, onProfileUpdate, 
     }
   }
 
+  const handleCourseSelection = async (course: any) => {
+    try {
+      setSelectedCourseId(course.id)
+      setShowCourseSelection(false)
+      
+      // Create thread for selected course
+      const t = await create()
+      setActiveChat(t.id)
+      setHasAutoCreated(true)
+      localStorage.setItem('hasAutoCreatedThread', 'true')
+    } catch (error) {
+      console.error("Failed to create course chat:", error)
+    }
+  }
+
   const handleDeleteChat = async (chatId: string) => {
     try {
       await remove(chatId)
-      if (activeChat === chatId) {
-        setActiveChat(null)
+    if (activeChat === chatId) {
+      setActiveChat(null)
         if (threads.length <= 1) {
           setHasAutoCreated(false)
           localStorage.removeItem('hasAutoCreatedThread')
@@ -798,8 +825,40 @@ export function ChatDashboard({ user, onLogout, onSendMessage, onProfileUpdate, 
               threadId={activeChat}
             />
           )}
-        </div>
+                </div>
       </div>
+
+      {/* Course Selection Modal for Students */}
+      <Dialog open={showCourseSelection} onOpenChange={setShowCourseSelection}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Select Course to Chat About</DialogTitle>
+            <DialogDescription>
+              Choose which course you'd like to discuss with the AI assistant.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-2">
+            {myCourses.map((course: any) => (
+                <Button 
+                key={course.id} 
+                onClick={() => handleCourseSelection(course)}
+                className="justify-start"
+                variant="outline"
+              >
+                <MessageSquare className="h-4 w-4 mr-2" />
+                {course.title}
+                </Button>
+            ))}
+            {myCourses.length === 0 && (
+              <div className="text-center py-8">
+                <MessageSquare className="h-8 w-8 text-muted-foreground/50 mx-auto mb-2" />
+                <p className="text-sm text-muted-foreground">No courses enrolled</p>
+                <p className="text-xs text-muted-foreground/70 mt-1">Ask your teacher to enroll you in a course</p>
+            </div>
+          )}
+        </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Profile Dialog */}
       <Dialog open={profileDialogOpen} onOpenChange={setProfileDialogOpen}>

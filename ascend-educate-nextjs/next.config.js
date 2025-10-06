@@ -10,6 +10,10 @@ const nextConfig = {
   experimental: {
     optimizePackageImports: ['lucide-react'],
   },
+  // Configure server actions body size limit for file uploads
+  serverActions: {
+    bodySizeLimit: '10mb', // Allow up to 10MB for file uploads
+  },
 }
 
 module.exports = nextConfig
