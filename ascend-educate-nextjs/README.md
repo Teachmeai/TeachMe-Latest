@@ -1,36 +1,31 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+## TeachMe Frontend (Next.js)
 
-## Getting Started
+Next.js app for TeachMe. Auth via Supabase; talks to the FastAPI backend using environment-configured URLs.
 
-First, run the development server:
+## Environment Variables (.env.local)
+Create `ascend-educate-nextjs/.env.local` with:
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+```
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+NEXT_PUBLIC_BACKEND_URL=
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Notes:
+- The app reads `NEXT_PUBLIC_BACKEND_URL` to avoid hardcoding the API URL [[memory:4484824]].
+- If omitted, some utilities fall back to `http://127.0.0.1:8000`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Install and Run
+```bash
+cd ascend-educate-nextjs
+npm install
+npm run dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Open `http://localhost:3000`.
 
-## Learn More
+## Backend Requirements
+Ensure the backend is running at the URL specified by `NEXT_PUBLIC_BACKEND_URL`. See project root `README.md` for backend setup.
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Deploy
+For deployment, configure `NEXT_PUBLIC_*` variables in your hosting provider. If using Render, set `NEXT_PUBLIC_BACKEND_URL` according to your backend service URL; the app already expects this env at runtime.

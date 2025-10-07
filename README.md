@@ -1,4 +1,4 @@
-## Teachme Backend
+## TeachMe Backend
 
 FastAPI backend with Supabase auth, Redis-backed sessions, and OPA (Open Policy Agent) RBAC enforcement.
 
@@ -32,18 +32,25 @@ FastAPI backend with Supabase auth, Redis-backed sessions, and OPA (Open Policy 
 Create a `.env` in the project root:
 
 ```
-SUPABASE_URL=YOUR_SUPABASE_URL
-SUPABASE_SERVICE_ROLE_KEY=YOUR_SERVICE_ROLE_KEY
-SUPABASE_ANON_KEY=YOUR_ANON_KEY
-
-JWT_SECRET=YOUR_SUPABASE_JWT_SECRET
-JWT_ALGORITHM=HS256
-
-REDIS_URL=redis://localhost:6379/0
-OPA_URL=http://localhost:8181
-
-FRONTEND_URL=http://localhost:3000
-ALLOWED_ORIGINS=http://localhost:3000
+SUPABASE_URL=
+SUPABASE_SERVICE_ROLE_KEY=
+SUPABASE_ANON_KEY=
+FRONTEND_URL=
+GOOGLE_REDIRECT_URI=
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+JWT_SECRET=
+JWT_ALGORITHM=
+REDIS_URL=
+OPA_URL=
+ALLOWED_ORIGINS=
+MAIL_USERNAME=
+MAIL_PASSWORD=
+MAIL_FROM=
+MAIL_PORT=
+MAIL_SERVER=
+OPENAI_API_KEY=
+OPENAI_ORG_ID=
 ```
 
 Notes:
@@ -85,7 +92,7 @@ allow if {
 ```
 3) Start OPA using the project policy:
 ```
-# From project root: C:\Users\Kamra\Desktop\Teachme backend
+# From project root: C:\Users\Kamra\Desktop\TeachMe-Latest
 & "$env:USERPROFILE\opa.exe" run --server ".\opa\policy.rego"
 ```
 OPA listens on `http://localhost:8181`.
@@ -102,6 +109,7 @@ Apply `migrations/first.sql` to your Supabase/Postgres. Ensure `memberships` exi
 
 ### Run the Backend
 ```
+# Apply websocket compatibility shim first-time import (already handled in trunk.py)
 python -m uvicorn trunk:app --reload
 ```
 Open docs at `http://127.0.0.1:8000/docs`.
@@ -162,8 +170,30 @@ Ensure `ALLOWED_ORIGINS` contains your frontend URL (e.g., `http://localhost:300
 - JWT invalid: confirm `JWT_SECRET` matches Supabase JWT secret; tokens must be fresh and valid.
 - OPA denies: adjust `policy.rego` or your route’s `action`/`resource` to match policy.
 
+### Project Structure
+- Backend (FastAPI): project root, app entry `trunk.py`
+- Frontend (Next.js): `ascend-educate-nextjs/` — see its README for setup
+
+### Environment Summary
+- `.env` in project root for backend
+- `ascend-educate-nextjs/.env.local` for frontend
+
 ### Notes
 - Extend policies by editing `opa/policy.rego` in the project and restarting OPA (or `PUT /v1/policies/authz`).
 - Replace the example OPA rule with your real RBAC logic.
+
+
+### Further reading
+- See `docs/ARCHITECTURE.md` for architecture and rationale (Redis, OPA, flows)
+- See `docs/COMMUNICATION_FLOW.md` for frontend↔backend and backend↔OpenAI communication
+- See `docs/SUPABASE_SETUP.md` for Supabase envs and migrations
+- See `docs/AUTH_SETUP.md` for Email OTP + Google setup and templates
+- See `docs/ENV_REFERENCE.md` for all env variable names
+- See `docs/DIRECTORY_STRUCTURE.md` for an overview of folders and key files
+- See `docs/IMPLEMENTED_FEATURES.md` for a concise list of what's implemented
+- See `docs/UNUSED_APIS.md` for endpoints and utilities not yet used by the UI
+- See `docs/AGENT_FUNCTIONS.md` for functions available to each agent
+- See `docs/HANDOFF.md` for a comprehensive handoff (onboarding, ops, APIs, etc.)
+- See `docs/NEXT_IMPLEMENTATION.md` for the upcoming super_admin + grading plan
 
 
