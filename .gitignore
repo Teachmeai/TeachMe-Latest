@@ -1,9 +1,8 @@
-.env
 env.backend
 env
-ascend-educate-nextjs/.env.local
-.venv
-# Assistant creation scripts (contain API keys)
 create_assistant.py
 list.py
 cs_tutor_notes.pdf
+__pycache__
+core/__pycache__
+
